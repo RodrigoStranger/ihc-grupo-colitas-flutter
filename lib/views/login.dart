@@ -14,6 +14,7 @@ class AnimalShelterLoginForm extends BaseForm {
   final VoidCallback onTogglePasswordVisibility;
   final VoidCallback onToggleRememberMe;
   final VoidCallback onForgotPassword;
+  final ValueChanged<bool>? onPasswordVisibilityChanged;
 
   const AnimalShelterLoginForm({
     super.key,
@@ -25,6 +26,7 @@ class AnimalShelterLoginForm extends BaseForm {
     required this.onTogglePasswordVisibility,
     required this.onToggleRememberMe,
     required this.onForgotPassword,
+    this.onPasswordVisibilityChanged,
     required super.onSubmit,
   }) : super(
           title: appTitle,
@@ -141,10 +143,11 @@ class AnimalShelterLoginForm extends BaseForm {
 
   List<Widget> _buildFields() {
     return [
-      // Campo de email
       TextFormField(
         controller: emailController,
         keyboardType: TextInputType.emailAddress,
+        autofillHints: const [AutofillHints.email],
+        textInputAction: TextInputAction.next,
         decoration: InputDecoration(
           labelText: loginEmailLabel,
           labelStyle: const TextStyle(color: labelTextColor),
@@ -163,11 +166,11 @@ class AnimalShelterLoginForm extends BaseForm {
         ),
       ),
       const SizedBox(height: 20),
-      
-      // Campo de contraseña
       TextFormField(
         controller: passwordController,
         obscureText: !isPasswordVisible,
+        autofillHints: const [AutofillHints.password],
+        textInputAction: TextInputAction.done,
         decoration: InputDecoration(
           labelText: loginPasswordLabel,
           labelStyle: const TextStyle(color: labelTextColor),
@@ -178,7 +181,12 @@ class AnimalShelterLoginForm extends BaseForm {
               isPasswordVisible ? Icons.visibility : Icons.visibility_off,
               color: accentBlue,
             ),
-            onPressed: onTogglePasswordVisibility,
+            onPressed: () {
+              if (onPasswordVisibilityChanged != null) {
+                onPasswordVisibilityChanged!(!isPasswordVisible);
+              }
+            },
+            tooltip: isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -241,6 +249,51 @@ class AnimalShelterLoginForm extends BaseForm {
           ),
         ],
       ),
+    );
+  }
+}
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isPasswordVisible = false;
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimalShelterLoginForm(
+      emailController: emailController,
+      passwordController: passwordController,
+      isPasswordVisible: isPasswordVisible,
+      isLoading: isLoading,
+      rememberMe: false,
+      onTogglePasswordVisibility: () {
+        setState(() {
+          isPasswordVisible = !isPasswordVisible;
+        });
+      },
+      onPasswordVisibilityChanged: (value) {
+        setState(() {
+          isPasswordVisible = value;
+        });
+      },
+      onToggleRememberMe: () {},
+      onForgotPassword: () {},
+      onSubmit: () {},
     );
   }
 }
