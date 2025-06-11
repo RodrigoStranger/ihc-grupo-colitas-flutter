@@ -142,6 +142,8 @@ class AnimalShelterLoginForm extends BaseForm {
         keyboardType: TextInputType.emailAddress,
         decoration: InputDecoration(
           labelText: loginEmailLabel,
+          labelStyle: const TextStyle(color: labelTextColor),
+          floatingLabelStyle: const TextStyle(color: labelTextColor),
           prefixIcon: const Icon(Icons.email_outlined, color: accentBlue),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -163,6 +165,8 @@ class AnimalShelterLoginForm extends BaseForm {
         obscureText: !isPasswordVisible,
         decoration: InputDecoration(
           labelText: loginPasswordLabel,
+          labelStyle: const TextStyle(color: labelTextColor),
+          floatingLabelStyle: const TextStyle(color: labelTextColor),
           prefixIcon: const Icon(Icons.lock_outline, color: accentBlue),
           suffixIcon: IconButton(
             icon: Icon(
