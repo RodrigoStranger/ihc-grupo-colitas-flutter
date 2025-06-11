@@ -70,7 +70,9 @@ class AnimalShelterLoginForm extends BaseForm {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          width: 160,
+          height: 160,
+          padding: EdgeInsets.zero,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
@@ -82,10 +84,13 @@ class AnimalShelterLoginForm extends BaseForm {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.pets,
-            size: 60,
-            color: accentBlue,
+          child: ClipOval(
+            child: Image.asset(
+              'assets/grupo_colitas.png',
+              width: 160,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 30),

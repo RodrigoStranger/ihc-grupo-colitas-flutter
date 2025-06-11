@@ -1,5 +1,5 @@
 // Recursos de texto utlizados en el Login.dart
-const String appTitle = 'Grupo Colitas de Arequipa';
+const String appTitle = 'Grupo Colitas Arequipa';
 const String loginPanelTitle = 'Panel de Administración';
 const String loginEmailLabel = 'Correo electrónico';
 const String loginPasswordLabel = 'Contraseña';
