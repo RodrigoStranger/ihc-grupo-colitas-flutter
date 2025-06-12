@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'views/main_menu.dart';
 import 'views/login.dart';
 
 void main() => runApp(MaterialApp(
