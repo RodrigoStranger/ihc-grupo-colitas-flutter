@@ -1,120 +1,244 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import '../widgets/menu_option_card.dart';
-import '../core/strings.dart';
-import '../core/colors.dart';
+import 'package:provider/provider.dart';
 
-class MainMenuScreen extends StatefulWidget {
+import '../core/colors.dart';
+import '../core/strings.dart';
+import '../viewmodels/main_menu_viewmodel.dart';
+import '../widgets/menu_option_card.dart';
+
+class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
 
   @override
-  State<MainMenuScreen> createState() => _MainMenuScreenState();
-}
-
-class _MainMenuScreenState extends State<MainMenuScreen> {
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: lightPastelBlue,      appBar: AppBar(
-        title: const Text(
-          mainMenuTitle,
-          style: TextStyle(
-            color: labelTextColor,
-          ),
-        ),
-        backgroundColor: accentBlue,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [            Text(
-              mainMenuWelcome,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              mainMenuSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            Expanded(              child: ListView(
-                children: [
-                  MenuOptionCard(
-                    icon: Icons.volunteer_activism,
-                    title: menuDonacionesTitle,
-                    description: menuDonacionesDesc,
-                    onTap: _onDonacionesTap,
-                  ),
-                  MenuOptionCard(
-                    icon: Icons.pets,
-                    title: menuAdopcionesTitle,
-                    description: menuAdopcionesDesc,
-                    onTap: _onAdopcionesTap,
-                  ),
-                  MenuOptionCard(
-                    icon: Icons.campaign,
-                    title: menuCampanasTitle,
-                    description: menuCampanasDesc,
-                    onTap: _onCampanasTap,
-                  ),
-                  MenuOptionCard(
-                    icon: Icons.list_alt,
-                    title: menuAnimalesTitle,
-                    description: menuAnimalesDesc,
-                    onTap: _onAnimalesTap,
-                  ),                ],
+    return Consumer<MainMenuViewModel>(
+      builder: (context, viewModel, child) {        // Escuchar cambios en el estado de autenticación
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!viewModel.isAuthenticated) {
+            Navigator.of(context).pushReplacementNamed('/');
+          }
+        });
+
+        return Scaffold(
+          backgroundColor: lightPastelBlue,
+          appBar: AppBar(
+            title: Text(
+              appTitle,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            // Footer con versión
-            FutureBuilder<PackageInfo>(
-              future: PackageInfo.fromPlatform(),
-              builder: (context, snapshot) {
-                final version = snapshot.hasData ? snapshot.data!.version : '';
-                return _buildFooter(version);
-              },
+            backgroundColor: primaryPastelBlue,
+            foregroundColor: Colors.white,
+            elevation: 2,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () => _showLogoutDialog(context, viewModel),
+                tooltip: 'Cerrar sesión',
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildWelcomeSection(viewModel),
+                  const SizedBox(height: 24),
+                  _buildMenuOptions(context),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  void _onDonacionesTap() {
-    // TODO: Implementar navegación o acción para donaciones
-  }
-  void _onAdopcionesTap() {
-    // TODO: Implementar navegación o acción para adopciones
-  }
-
-  void _onCampanasTap() {
-    // TODO: Implementar navegación o acción para campañas
-  }
-  void _onAnimalesTap() {
-    // TODO: Implementar navegación o acción para animales
-  }
-  Widget _buildFooter(String version) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+  Widget _buildWelcomeSection(MainMenuViewModel viewModel) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: primaryPastelBlue.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              '$loginVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 10,
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: lightPastelBlue,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: primaryPastelBlue, width: 2),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/grupo_colitas.png',
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      menuWelcomeTitle,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      viewModel.currentUser?.email ?? 'Usuario',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            menuWelcomeSubtitle,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMenuOptions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          menuOptionsTitle,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.1,          children: [
+            MenuOptionCard(
+              title: menuOptionAdoptionsTitle,
+              description: menuAdopcionesDesc,
+              icon: Icons.pets,
+              onTap: () => _navigateToSection(context, 'adopciones'),
+            ),
+            MenuOptionCard(
+              title: menuOptionEventsTitle,
+              description: menuCampanasDesc,
+              icon: Icons.event,
+              onTap: () => _navigateToSection(context, 'eventos'),
+            ),
+            MenuOptionCard(
+              title: menuOptionVolunteeringTitle,
+              description: 'Únete como voluntario en nuestras actividades',
+              icon: Icons.volunteer_activism,
+              onTap: () => _navigateToSection(context, 'voluntariado'),
+            ),
+            MenuOptionCard(
+              title: menuOptionDonationsTitle,
+              description: menuDonacionesDesc,
+              icon: Icons.favorite,
+              onTap: () => _navigateToSection(context, 'donaciones'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _navigateToSection(BuildContext context, String section) {
+    // Por ahora mostramos un mensaje, en el futuro se navegará a la sección correspondiente
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Navegando a $section...'),
+        backgroundColor: primaryPastelBlue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, MainMenuViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Cerrar sesión',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas cerrar sesión?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                viewModel.signOut();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[600],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Cerrar sesión'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

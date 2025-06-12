@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import 'views/login.dart';
-import 'views/main_menu.dart';
+import 'app.dart';
+import 'core/supabase.dart';
 
-void main() => runApp(const MaterialApp(
-  home: MainMenuScreen(),
-));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar Supabase
+  await SupabaseConfig.initialize();
+  
+  runApp(const MyApp());
+}

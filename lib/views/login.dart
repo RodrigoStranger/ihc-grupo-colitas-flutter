@@ -1,38 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 
-import '../widgets/base_form.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
+import '../viewmodels/login_viewmodel.dart';
 
-class AnimalShelterLoginForm extends BaseForm {
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final bool isPasswordVisible;
-  final bool isLoading;
-  final bool rememberMe;
-  final VoidCallback onTogglePasswordVisibility;
-  final VoidCallback onToggleRememberMe;
-  final VoidCallback onForgotPassword;
-  final ValueChanged<bool>? onPasswordVisibilityChanged;
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
-  const AnimalShelterLoginForm({
-    super.key,
-    required this.emailController,
-    required this.passwordController,
-    required this.isPasswordVisible,
-    required this.isLoading,
-    required this.rememberMe,
-    required this.onTogglePasswordVisibility,
-    required this.onToggleRememberMe,
-    required this.onForgotPassword,
-    this.onPasswordVisibilityChanged,
-    required super.onSubmit,
-  }) : super(
-          title: appTitle,
-          fields: const [], // Se sobrescribe en _buildFields()
-          submitButtonText: loginButtonText,
-        );
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LoginViewModel>(
+      builder: (context, viewModel, child) {
+        // Escuchar cambios en el estado de autenticación
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (viewModel.isAuthenticated) {
+            Navigator.of(context).pushReplacementNamed('/menu');
+          } else if (viewModel.hasError) {
+            _showErrorSnackBar(context, viewModel.errorMessage!);
+            viewModel.clearError();
+          }
+        });
+
+        return const _LoginView();
+      },
+    );
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+}
+
+class _LoginView extends StatefulWidget {
+  const _LoginView();
+
+  @override
+  State<_LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<_LoginView> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,20 +75,11 @@ class AnimalShelterLoginForm extends BaseForm {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                // Header con logo
                 _buildHeader(),
                 const SizedBox(height: 50),
-                // Formulario
                 _buildFormCard(context),
                 const Spacer(),
-                // Footer
-                FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) {
-                    final version = snapshot.hasData ? snapshot.data!.version : '';
-                    return _buildFooter(version);
-                  },
-                ),
+                _buildFooter(),
               ],
             ),
           ),
@@ -97,7 +117,7 @@ class AnimalShelterLoginForm extends BaseForm {
         ),
         const SizedBox(height: 30),
         Text(
-          title,
+          appTitle,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -130,170 +150,164 @@ class AnimalShelterLoginForm extends BaseForm {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ..._buildFields(),
-          const SizedBox(height: 30),
-          _buildSubmitButton(),
-        ],
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildEmailField(),
+            const SizedBox(height: 20),
+            _buildPasswordField(),
+            const SizedBox(height: 30),
+            _buildSubmitButton(),
+          ],
+        ),
       ),
     );
   }
 
-  List<Widget> _buildFields() {
-    return [
-      TextFormField(
-        controller: emailController,
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [AutofillHints.email],
-        textInputAction: TextInputAction.next,
-        decoration: InputDecoration(
-          labelText: loginEmailLabel,
-          labelStyle: const TextStyle(color: labelTextColor),
-          floatingLabelStyle: const TextStyle(color: labelTextColor),
-          prefixIcon: const Icon(Icons.email_outlined, color: accentBlue),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primaryPastelBlue),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: accentBlue, width: 2),
-          ),
-          filled: true,
-          fillColor: lightPastelBlue.withValues(alpha: 0.3),
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.email],
+      textInputAction: TextInputAction.next,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Por favor, ingresa tu correo electrónico';
+        }
+        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+          return 'Ingresa un correo electrónico válido';
+        }
+        return null;
+      },
+      decoration: InputDecoration(
+        labelText: loginEmailLabel,
+        labelStyle: const TextStyle(color: labelTextColor),
+        floatingLabelStyle: const TextStyle(color: labelTextColor),
+        prefixIcon: const Icon(Icons.email_outlined, color: accentBlue),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryPastelBlue),
         ),
-      ),
-      const SizedBox(height: 20),
-      TextFormField(
-        controller: passwordController,
-        obscureText: !isPasswordVisible,
-        autofillHints: const [AutofillHints.password],
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(
-          labelText: loginPasswordLabel,
-          labelStyle: const TextStyle(color: labelTextColor),
-          floatingLabelStyle: const TextStyle(color: labelTextColor),
-          prefixIcon: const Icon(Icons.lock_outline, color: accentBlue),
-          suffixIcon: IconButton(
-            icon: Icon(
-              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: accentBlue,
-            ),
-            onPressed: () {
-              if (onPasswordVisibilityChanged != null) {
-                onPasswordVisibilityChanged!(!isPasswordVisible);
-              }
-            },
-            tooltip: isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primaryPastelBlue),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: accentBlue, width: 2),
-          ),
-          filled: true,
-          fillColor: lightPastelBlue.withValues(alpha: 0.3),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: accentBlue, width: 2),
         ),
+        filled: true,
+        fillColor: lightPastelBlue.withValues(alpha: 0.3),
       ),
-    ];
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      autofillHints: const [AutofillHints.password],
+      textInputAction: TextInputAction.done,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor, ingresa tu contraseña';
+        }
+        return null;
+      },
+      onFieldSubmitted: (_) => _handleLogin(),
+      decoration: InputDecoration(
+        labelText: loginPasswordLabel,
+        labelStyle: const TextStyle(color: labelTextColor),
+        floatingLabelStyle: const TextStyle(color: labelTextColor),
+        prefixIcon: const Icon(Icons.lock_outline, color: accentBlue),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+            color: accentBlue,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+          tooltip: _isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryPastelBlue),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: accentBlue, width: 2),
+        ),
+        filled: true,
+        fillColor: lightPastelBlue.withValues(alpha: 0.3),
+      ),
+    );
   }
 
   Widget _buildSubmitButton() {
-    return ElevatedButton(
-      onPressed: isLoading ? null : onSubmit,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: accentBlue,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        elevation: 3,
-      ),
-      child: isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : Text(
-              submitButtonText,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+    return Consumer<LoginViewModel>(
+      builder: (context, viewModel, child) {
+        return ElevatedButton(
+          onPressed: viewModel.isLoading ? null : _handleLogin,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentBlue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-    );
-  }
-
-  Widget _buildFooter(String version) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            '$loginVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 10,
-            ),
+            elevation: 3,
           ),
-        ],
-      ),
+          child: viewModel.isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  loginButtonText,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        );
+      },
     );
   }
-}
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  bool isPasswordVisible = false;
-  bool isLoading = false;
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimalShelterLoginForm(
-      emailController: emailController,
-      passwordController: passwordController,
-      isPasswordVisible: isPasswordVisible,
-      isLoading: isLoading,
-      rememberMe: false,
-      onTogglePasswordVisibility: () {
-        setState(() {
-          isPasswordVisible = !isPasswordVisible;
-        });
+  Widget _buildFooter() {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.hasData ? snapshot.data!.version : '1.0.0';        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                '$loginVersionPrefix $version',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        );
       },
-      onPasswordVisibilityChanged: (value) {
-        setState(() {
-          isPasswordVisible = value;
-        });
-      },
-      onToggleRememberMe: () {},
-      onForgotPassword: () {},
-      onSubmit: () {},
     );
+  }
+  void _handleLogin() {
+    if (_formKey.currentState?.validate() ?? false) {
+      final viewModel = Provider.of<LoginViewModel>(context, listen: false);
+      viewModel.signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+    }
   }
 }
