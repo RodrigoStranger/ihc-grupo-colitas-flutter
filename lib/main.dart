@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'views/main_menu.dart';
 import 'views/login.dart';
+import 'views/main_menu.dart';
 
-void main() => runApp(MaterialApp(
-  home: LoginScreen(),
+void main() => runApp(const MaterialApp(
+  home: MainMenuScreen(),
 ));

@@ -8,7 +8,7 @@ const String loginVersionPrefix = 'Versión';
 
 // Recursos de texto para el menú principal
 const String mainMenuTitle = 'Menú Principal';
-const String mainMenuWelcome = 'Bienvenido/a, ¿qué deseas gestionar?';
+const String mainMenuWelcome = 'Bienvenid@ al Grupo Colitas Arequipa';
 const String mainMenuSubtitle = 'Selecciona una de las opciones para acceder a la funcionalidad correspondiente.';
 const String menuDonacionesTitle = 'Gestión de Donaciones';
 const String menuDonacionesDesc = 'Registra, visualiza y administra las donaciones recibidas.';
