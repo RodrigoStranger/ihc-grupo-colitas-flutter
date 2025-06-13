@@ -43,6 +43,21 @@ class _LoginViewState extends State<_LoginView> {
   bool _isPasswordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_clearLoginError);
+    _passwordController.addListener(_clearLoginError);
+  }
+
+  void _clearLoginError() {
+    if (widget.loginError != null) {
+      // Notificar al ViewModel para limpiar el error
+      final viewModel = Provider.of<LoginViewModel>(context, listen: false);
+      viewModel.clearError();
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -295,11 +310,9 @@ class _LoginViewState extends State<_LoginView> {
             email: _emailController.text,
             password: _passwordController.text,
           )
-          .catchError((e) {
-            setState(() {
-              // Aquí se maneja el error de login, pero no es necesario hacer nada,
-              // ya que el mensaje de error se mostrará automáticamente en el campo de contraseña.
-            });
+          .then((_) {
+            // Si el login fue exitoso, limpiar el error en el ViewModel
+            viewModel.clearError();
           });
     }
   }
