@@ -6,21 +6,20 @@ import '../repositories/auth_repository.dart';
 /// ViewModel para manejar la lógica de autenticación del login
 class LoginViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
-  
+
   AuthState _state = const AuthState.initial();
   AuthState get state => _state;
 
   LoginViewModel({required AuthRepository authRepository})
-      : _authRepository = authRepository;
+    : _authRepository = authRepository;
 
   /// Inicia sesión con email y contraseña
-  Future<void> signIn({
-    required String email, 
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     // Validaciones básicas
     if (email.trim().isEmpty) {
-      _updateState(const AuthState.error('Por favor, ingresa tu correo electrónico'));
+      _updateState(
+        const AuthState.error('Por favor, ingresa tu correo electrónico'),
+      );
       return;
     }
 
@@ -30,9 +29,13 @@ class LoginViewModel extends ChangeNotifier {
     }
 
     if (!_isValidEmail(email)) {
-      _updateState(const AuthState.error('Por favor, ingresa un correo electrónico válido'));
+      _updateState(
+        const AuthState.error(
+          'Por favor, ingresa un correo electrónico válido',
+        ),
+      );
       return;
-    }    // Iniciar proceso de autenticación
+    } // Iniciar proceso de autenticación
     _updateState(const AuthState.loading());
 
     try {
@@ -40,19 +43,18 @@ class LoginViewModel extends ChangeNotifier {
         email: email,
         password: password,
       );
-      
       _updateState(AuthState.authenticated(user));
-    } on AuthException catch (e) {
-      _updateState(AuthState.error(e.message));
-    } catch (e) {
-      _updateState(const AuthState.error('Error inesperado. Intenta de nuevo.'));
+    } on AuthException catch (_) {
+      _updateState(const AuthState.error('Usuario o contraseña incorrectos'));
+    } catch (_) {
+      _updateState(const AuthState.error('Usuario o contraseña incorrectos'));
     }
   }
 
   /// Cierra la sesión actual
   Future<void> signOut() async {
     _updateState(const AuthState.loading());
-    
+
     try {
       await _authRepository.signOut();
       _updateState(const AuthState.unauthenticated());
@@ -94,6 +96,7 @@ class LoginViewModel extends ChangeNotifier {
   bool _isValidEmail(String email) {
     return RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email.trim());
   }
+
   /// Getters de conveniencia
   bool get isLoading => _state.isLoading;
   bool get isAuthenticated => _state.status == AuthStatus.authenticated;

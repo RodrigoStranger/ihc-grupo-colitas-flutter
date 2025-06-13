@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/login_viewmodel.dart';
+import '../repositories/auth_repository.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -17,34 +18,19 @@ class LoginScreen extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (viewModel.isAuthenticated) {
             Navigator.of(context).pushReplacementNamed('/menu');
-          } else if (viewModel.hasError) {
-            _showErrorSnackBar(context, viewModel.errorMessage!);
-            viewModel.clearError();
           }
         });
-
-        return const _LoginView();
+        return _LoginView(
+          loginError: viewModel.hasError ? viewModel.errorMessage : null,
+        );
       },
-    );
-  }
-
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
     );
   }
 }
 
 class _LoginView extends StatefulWidget {
-  const _LoginView();
+  final String? loginError;
+  const _LoginView({this.loginError});
 
   @override
   State<_LoginView> createState() => _LoginViewState();
@@ -71,7 +57,9 @@ class _LoginViewState extends State<_LoginView> {
         child: SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+            height:
+                MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top,
             child: Column(
               children: [
                 const SizedBox(height: 40),
@@ -127,10 +115,7 @@ class _LoginViewState extends State<_LoginView> {
         const SizedBox(height: 8),
         Text(
           loginPanelTitle,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],
     );
@@ -210,6 +195,9 @@ class _LoginViewState extends State<_LoginView> {
         if (value == null || value.isEmpty) {
           return 'Por favor, ingresa tu contraseña';
         }
+        if (widget.loginError != null) {
+          return widget.loginError;
+        }
         return null;
       },
       onFieldSubmitted: (_) => _handleLogin(),
@@ -228,7 +216,9 @@ class _LoginViewState extends State<_LoginView> {
               _isPasswordVisible = !_isPasswordVisible;
             });
           },
-          tooltip: _isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
+          tooltip: _isPasswordVisible
+              ? 'Ocultar contraseña'
+              : 'Mostrar contraseña',
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -269,10 +259,7 @@ class _LoginViewState extends State<_LoginView> {
                 )
               : const Text(
                   loginButtonText,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         );
       },
@@ -283,17 +270,15 @@ class _LoginViewState extends State<_LoginView> {
     return FutureBuilder<PackageInfo>(
       future: PackageInfo.fromPlatform(),
       builder: (context, snapshot) {
-        final version = snapshot.hasData ? snapshot.data!.version : '1.0.0';        return Padding(
+        final version = snapshot.hasData ? snapshot.data!.version : '1.0.0';
+        return Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: Column(
             children: [
               const SizedBox(height: 8),
               Text(
                 '$loginVersionPrefix $version',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 10),
               ),
             ],
           ),
@@ -301,13 +286,21 @@ class _LoginViewState extends State<_LoginView> {
       },
     );
   }
+
   void _handleLogin() {
     if (_formKey.currentState?.validate() ?? false) {
       final viewModel = Provider.of<LoginViewModel>(context, listen: false);
-      viewModel.signIn(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+      viewModel
+          .signIn(
+            email: _emailController.text,
+            password: _passwordController.text,
+          )
+          .catchError((e) {
+            setState(() {
+              // Aquí se maneja el error de login, pero no es necesario hacer nada,
+              // ya que el mensaje de error se mostrará automáticamente en el campo de contraseña.
+            });
+          });
     }
   }
 }
