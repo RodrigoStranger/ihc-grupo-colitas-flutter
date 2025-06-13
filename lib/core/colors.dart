@@ -5,3 +5,5 @@ const Color darkPastelBlue = Color(0xFF87CEEB);
 const Color lightPastelBlue = Color(0xFFE1F5FE);
 const Color accentBlue = Color(0xFF4FC3F7);
 const Color labelTextColor = Colors.black;
+
+const Color whiteColor = Colors.white;

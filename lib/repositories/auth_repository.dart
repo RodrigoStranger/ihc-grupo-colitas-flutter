@@ -37,14 +37,12 @@ class SupabaseAuthRepository implements AuthRepository {
       );
 
       if (response.user == null) {
-        throw const AuthException('Error desconocido al iniciar sesión');
+        throw const AuthException('Usuario o contraseña incorrectos');
       }
 
       return UserModel.fromSupabaseUser(response.user!);
-    } on AuthException catch (e) {
-      throw AuthException(_getErrorMessage(e.message));
     } catch (e) {
-      throw const AuthException('Error de conexión. Verifica tu internet.');
+      throw const AuthException('Usuario o contraseña incorrectos');
     }
   }
 
@@ -62,7 +60,7 @@ class SupabaseAuthRepository implements AuthRepository {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return null;
-      
+
       return UserModel.fromSupabaseUser(user);
     } catch (e) {
       return null;
@@ -75,29 +73,5 @@ class SupabaseAuthRepository implements AuthRepository {
       final user = data.session?.user;
       return user != null ? UserModel.fromSupabaseUser(user) : null;
     });
-  }
-
-  /// Convierte los errores de Supabase en mensajes amigables
-  String _getErrorMessage(String message) {
-    switch (message.toLowerCase()) {
-      case 'invalid login credentials':
-        return 'Correo electrónico o contraseña incorrectos';
-      case 'email not confirmed':
-        return 'Por favor, confirma tu correo electrónico';
-      case 'too many requests':
-        return 'Demasiados intentos. Intenta de nuevo más tarde';
-      case 'user not found':
-        return 'No existe una cuenta con este correo electrónico';
-      case 'invalid email':
-        return 'El formato del correo electrónico no es válido';
-      case 'password is too weak':
-        return 'La contraseña es muy débil';
-      case 'email already registered':
-        return 'Ya existe una cuenta con este correo electrónico';
-      default:
-        return message.isNotEmpty 
-            ? message 
-            : 'Error al iniciar sesión. Intenta de nuevo';
-    }
   }
 }

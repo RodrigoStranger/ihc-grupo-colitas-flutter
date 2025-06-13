@@ -4,7 +4,6 @@ import 'views/login.dart';
 import 'views/main_menu.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/login_viewmodel.dart';
-import 'viewmodels/main_menu_viewmodel.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -18,24 +17,17 @@ class MyApp extends StatelessWidget {
       providers: [
         // Repositorio de autenticación
         Provider<AuthRepository>.value(value: authRepository),
-        
+
         // ViewModel de login
         ChangeNotifierProvider<LoginViewModel>(
           create: (context) => LoginViewModel(authRepository: authRepository),
-        ),
-        
-        // ViewModel de menú principal
-        ChangeNotifierProvider<MainMenuViewModel>(
-          create: (context) => MainMenuViewModel(authRepository: authRepository),
         ),
       ],
       child: MaterialApp(
         title: 'Grupo Colitas Arequipa',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          fontFamily: 'Roboto',
-        ),        initialRoute: '/',
+        theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
+        initialRoute: '/',
         routes: {
           '/': (context) => const LoginScreen(),
           '/login': (context) => const LoginScreen(),
