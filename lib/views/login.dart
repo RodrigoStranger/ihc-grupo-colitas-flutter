@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/login_viewmodel.dart';
-import '../repositories/auth_repository.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
