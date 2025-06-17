@@ -27,3 +27,9 @@ const String menuOptionAdoptionsTitle = 'Adopciones';
 const String menuOptionEventsTitle = 'Eventos';
 const String menuOptionVolunteeringTitle = 'Voluntariado';
 const String menuOptionDonationsTitle = 'Donaciones';
+
+// Mensajes de error para el login
+const String loginErrorInvalidCredentials = 'Usuario o contraseña no existentes';
+const String loginErrorEmptyEmail = 'Por favor, ingresa tu correo electrónico';
+const String loginErrorInvalidEmail = 'Ingresa un correo electrónico válido';
+const String loginErrorEmptyPassword = 'Por favor, ingresa tu contraseña';

@@ -189,14 +189,14 @@ class _LoginViewState extends State<_LoginView> {
       textInputAction: TextInputAction.next,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Por favor, ingresa tu correo electrónico';
+          return loginErrorEmptyEmail;
         }
         if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-          return 'Ingresa un correo electrónico válido';
+          return loginErrorInvalidEmail;
         }
         if (widget.loginError != null) {
           // Mostrar mensaje de error también en el campo de correo
-          return 'Usuario o contraseña no existentes';
+          return loginErrorInvalidCredentials;
         }
         return null;
       },
@@ -227,11 +227,11 @@ class _LoginViewState extends State<_LoginView> {
       textInputAction: TextInputAction.done,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Por favor, ingresa tu contraseña';
+          return loginErrorEmptyPassword;
         }
         if (widget.loginError != null) {
           // Mostrar mensaje genérico si el login falló
-          return 'Usuario o contraseña no existentes';
+          return loginErrorInvalidCredentials;
         }
         return null;
       },
