@@ -11,16 +11,21 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
     return Consumer<LoginViewModel>(
       builder: (context, viewModel, child) {
-        // Escuchar cambios en el estado de autenticación
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (viewModel.isAuthenticated) {
             Navigator.of(context).pushReplacementNamed('/menu');
           }
+          // Forzar validación si hay error
+          if (viewModel.hasError) {
+            formKey.currentState?.validate();
+          }
         });
         return _LoginView(
           loginError: viewModel.hasError ? viewModel.errorMessage : null,
+          formKey: formKey,
         );
       },
     );
@@ -29,7 +34,8 @@ class LoginScreen extends StatelessWidget {
 
 class _LoginView extends StatefulWidget {
   final String? loginError;
-  const _LoginView({this.loginError});
+  final GlobalKey<FormState> formKey;
+  const _LoginView({this.loginError, required this.formKey});
 
   @override
   State<_LoginView> createState() => _LoginViewState();
@@ -38,7 +44,6 @@ class _LoginView extends StatefulWidget {
 class _LoginViewState extends State<_LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
 
   @override
@@ -49,8 +54,8 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   void _clearLoginError() {
-    if (widget.loginError != null) {
-      // Notificar al ViewModel para limpiar el error
+    // Solo limpiar el error si el usuario ya empezó a escribir después de un error
+    if (widget.loginError != null && (_emailController.text.isNotEmpty || _passwordController.text.isNotEmpty)) {
       final viewModel = Provider.of<LoginViewModel>(context, listen: false);
       viewModel.clearError();
     }
@@ -61,6 +66,17 @@ class _LoginViewState extends State<_LoginView> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LoginView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si el error de login cambia y hay un error, forzar la validación del formulario
+    if (widget.loginError != null && widget.loginError != oldWidget.loginError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.formKey.currentState?.validate();
+      });
+    }
   }
 
   @override
@@ -150,7 +166,7 @@ class _LoginViewState extends State<_LoginView> {
         ],
       ),
       child: Form(
-        key: _formKey,
+        key: widget.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -177,6 +193,10 @@ class _LoginViewState extends State<_LoginView> {
         }
         if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
           return 'Ingresa un correo electrónico válido';
+        }
+        if (widget.loginError != null) {
+          // Mostrar mensaje de error también en el campo de correo
+          return 'Usuario o contraseña no existentes';
         }
         return null;
       },
@@ -210,7 +230,8 @@ class _LoginViewState extends State<_LoginView> {
           return 'Por favor, ingresa tu contraseña';
         }
         if (widget.loginError != null) {
-          return widget.loginError;
+          // Mostrar mensaje genérico si el login falló
+          return 'Usuario o contraseña no existentes';
         }
         return null;
       },
@@ -302,17 +323,14 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   void _handleLogin() {
-    if (_formKey.currentState?.validate() ?? false) {
+    if (widget.formKey.currentState?.validate() ?? false) {
       final viewModel = Provider.of<LoginViewModel>(context, listen: false);
       viewModel
           .signIn(
             email: _emailController.text,
             password: _passwordController.text,
-          )
-          .then((_) {
-            // Si el login fue exitoso, limpiar el error en el ViewModel
-            viewModel.clearError();
-          });
+          );
+      // viewModel.clearError(); // Eliminar esta línea para que el error se muestre
     }
   }
 }
