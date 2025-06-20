@@ -33,3 +33,8 @@ const String loginErrorInvalidCredentials = 'Usuario o contraseña no existentes
 const String loginErrorEmptyEmail = 'Por favor, ingresa tu correo electrónico';
 const String loginErrorInvalidEmail = 'Ingresa un correo electrónico válido';
 const String loginErrorEmptyPassword = 'Por favor, ingresa tu contraseña';
+
+// Mensajes para la pantalla de campañas
+const String campanasNoRegistradas = 'No hay campañas registradas.';
+const String campanasMotivoLabel = 'Motivo: ';
+const String campanasFechaLabel = 'Fecha: ';
