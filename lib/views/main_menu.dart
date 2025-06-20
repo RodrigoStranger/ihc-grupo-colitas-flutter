@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../widgets/menu_option_card.dart';
+import 'campanas_screen.dart'; // Asegúrate de importar la pantalla de campañas
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -99,7 +100,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onCampanasTap() {
-    // TODO: Implementar navegación o acción para campañas
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CampanasScreen()),
+    );
   }
 
   void _onAnimalesTap() {
