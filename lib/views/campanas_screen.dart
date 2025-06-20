@@ -27,7 +27,11 @@ class CampanasScreen extends StatelessWidget {
         body: Consumer<FirmaViewModel>(
           builder: (context, viewModel, _) {
             if (viewModel.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: accentBlue, // Usa el color celeste pastel definido en colors.dart
+                ),
+              );
             }
             if (viewModel.error != null) {
               return Center(child: Text('Error: ${viewModel.error}'));
