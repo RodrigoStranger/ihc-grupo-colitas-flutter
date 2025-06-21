@@ -104,10 +104,12 @@ class FirmaViewModel extends ChangeNotifier {
   void _updateFirma(int index, FirmaModel updatedFirma) {
     if (index >= 0 && index < _firmas.length) {
       _firmas[index] = updatedFirma;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
   
+  bool _isDisposed = false;
+
   @override
   void dispose() {
     // Cancelar todas las operaciones de carga de imágenes pendientes
@@ -116,21 +118,36 @@ class FirmaViewModel extends ChangeNotifier {
     }
     _imageLoadingOperations.clear();
     _repository.dispose();
+    _isDisposed = true;
     super.dispose();
+  }
+  
+  // Método auxiliar para verificar si el ViewModel sigue activo
+  bool get isActive => !_isDisposed;
+  
+  // Método auxiliar para notificar a los listeners solo si el ViewModel sigue activo
+  void _safeNotifyListeners() {
+    if (isActive) {
+      notifyListeners();
+    }
   }
   
   // Cargar la primera página de firmas
   Future<void> fetchFirmas() async {
-    if (_isLoading) return;
+    if (_isLoading || _isDisposed) return;
     
     _isLoading = true;
     _error = null;
     _currentPage = 0;
     _hasMore = true;
-    notifyListeners();
+    _safeNotifyListeners();
     
     try {
       final newFirmas = await _repository.getFirmas(page: 0, pageSize: _pageSize);
+      
+      // Verificar si el ViewModel sigue activo antes de actualizar el estado
+      if (_isDisposed) return;
+      
       _firmas.clear();
       _firmas.addAll(newFirmas);
       _hasMore = newFirmas.length == _pageSize;
@@ -140,23 +157,30 @@ class FirmaViewModel extends ChangeNotifier {
         _preloadNextPage();
       }
     } catch (e) {
-      _error = 'Error al cargar las firmas: ${e.toString()}';
+      if (!_isDisposed) {
+        _error = 'Error al cargar las firmas: ${e.toString()}';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        _isLoading = false;
+        _safeNotifyListeners();
+      }
     }
   }
   
   // Cargar más firmas (scroll infinito)
   Future<void> loadMoreFirmas() async {
-    if (_isLoading || _isLoadingMore || !_hasMore) return;
+    if (_isLoading || _isLoadingMore || !_hasMore || _isDisposed) return;
     
     _isLoadingMore = true;
-    notifyListeners();
+    _safeNotifyListeners();
     
     try {
       final newPage = _currentPage + 1;
       final newFirmas = await _repository.getFirmas(page: newPage, pageSize: _pageSize);
+      
+      // Verificar si el ViewModel sigue activo antes de actualizar el estado
+      if (_isDisposed) return;
       
       if (newFirmas.isNotEmpty) {
         _firmas.addAll(newFirmas);
@@ -171,19 +195,29 @@ class FirmaViewModel extends ChangeNotifier {
         _hasMore = false;
       }
     } catch (e) {
-      _error = 'Error al cargar más firmas: ${e.toString()}';
+      if (!_isDisposed) {
+        _error = 'Error al cargar más firmas: ${e.toString()}';
+      }
     } finally {
-      _isLoadingMore = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        _isLoadingMore = false;
+        _safeNotifyListeners();
+      }
     }
   }
   
   // Precargar la siguiente página en segundo plano
   Future<void> _preloadNextPage() async {
-    if (_isLoading || _isLoadingMore) return;
+    if (_isLoading || _isLoadingMore || _isDisposed) return;
     
     try {
       await _repository.preloadNextPage(_currentPage, pageSize: _pageSize);
+      
+      // Verificar si el ViewModel sigue activo después de la precarga
+      if (_isDisposed) return;
+      
+      // Notificar a los listeners que la precarga ha terminado
+      _safeNotifyListeners();
     } catch (_) {
       // Ignorar errores en precarga
     }

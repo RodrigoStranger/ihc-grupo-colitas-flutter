@@ -14,6 +14,7 @@ class CampanasScreen extends StatefulWidget {
 
 class _CampanasScreenState extends State<CampanasScreen> {
   final ScrollController _scrollController = ScrollController();
+  bool _initialLoadCompleted = false;
   
   @override
   void initState() {
@@ -58,11 +59,20 @@ class _CampanasScreenState extends State<CampanasScreen> {
         ),
         body: Consumer<FirmaViewModel>(
           builder: (context, viewModel, _) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!viewModel.isLoading && viewModel.firmas.isEmpty) {
-                viewModel.fetchFirmas();
-              }
-            });
+            // Cargar las firmas solo una vez al inicio
+            if (!viewModel.isLoading && viewModel.firmas.isEmpty && !_initialLoadCompleted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  viewModel.fetchFirmas().then((_) {
+                    if (mounted) {
+                      setState(() {
+                        _initialLoadCompleted = true;
+                      });
+                    }
+                  });
+                }
+              });
+            }
 
             if (viewModel.isLoading && viewModel.firmas.isEmpty) {
               return Center(
@@ -105,16 +115,15 @@ class _CampanasScreenState extends State<CampanasScreen> {
             
             if (firmas.isEmpty) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(campanasNoRegistradas),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: viewModel.fetchFirmas,
-                      child: const Text(botonRecargar),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    campanasNoRegistradas,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.black,
                     ),
-                  ],
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               );
             }
