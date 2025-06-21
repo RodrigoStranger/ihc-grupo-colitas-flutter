@@ -65,9 +65,22 @@ class _CampanasScreenState extends State<CampanasScreen> {
             });
 
             if (viewModel.isLoading && viewModel.firmas.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: accentBlue,
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      color: accentBlue,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      cargandoFirmas,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
@@ -81,7 +94,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: viewModel.fetchFirmas,
-                      child: const Text('Reintentar'),
+                      child: const Text(botonReintentar),
                     ),
                   ],
                 ),
@@ -99,7 +112,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: viewModel.fetchFirmas,
-                      child: const Text('Recargar'),
+                      child: const Text(botonRecargar),
                     ),
                   ],
                 ),
@@ -143,7 +156,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1), // ignore: deprecated_member_use
+                            color: Color.lerp(grey900, Colors.transparent, 0.9) ?? grey900,
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -156,13 +169,13 @@ class _CampanasScreenState extends State<CampanasScreen> {
                             height: 60,
                             margin: const EdgeInsets.only(right: 16),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: lightBlue50,
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: const Icon(
                               Icons.edit_document,
                               size: 32,
-                              color: Colors.blue,
+                              color: blue500,
                             ),
                           ),
                           Expanded(
@@ -188,7 +201,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
+                          const Icon(Icons.arrow_forward_ios, size: 18, color: grey400),
                         ],
                       ),
                     ),

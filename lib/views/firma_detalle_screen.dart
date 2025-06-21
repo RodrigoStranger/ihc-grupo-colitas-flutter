@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/firma_model.dart';
 import '../core/colors.dart';
+import '../core/strings.dart';
 import '../viewmodels/firma_viewmodel.dart';
 
 class FirmaDetalleScreen extends StatefulWidget {
@@ -52,7 +53,7 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Error al cargar la imagen de la firma';
+          _error = firmaErrorCargar;
           _isLoading = false;
         });
       }
@@ -66,7 +67,7 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'Detalle de la Firma',
+          firmaDetalleTitulo,
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -99,16 +100,16 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
                       _firma.nombreFirma,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: textDark,
                           ),
                     ),
                     const SizedBox(height: 20),
-                    _buildInfoRow('DNI:', _firma.dniFirma.toString(), context),
+                    _buildInfoRow(firmaDniLabel, _firma.dniFirma.toString(), context),
                     const SizedBox(height: 12),
-                    _buildInfoRow('Motivo:', _firma.motivoFirma, context),
+                    _buildInfoRow(firmaMotivoLabel, _firma.motivoFirma, context),
                     const SizedBox(height: 12),
                     _buildInfoRow(
-                      'Fecha de registro:',
+                      firmaFechaRegistroLabel,
                       _firma.fechaRegistro.toLocal().toString().split(' ')[0],
                       context,
                     ),
@@ -125,7 +126,7 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0, bottom: 8.0, top: 16.0),
                   child: Text(
-                    'Firma:',
+                    firmaLabel,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -141,7 +142,7 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color.fromRGBO(0, 0, 0, 0.1),
+                        color: Color.lerp(grey900, Colors.transparent, 0.9) ?? grey900,
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -160,10 +161,22 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
 
   Widget _buildFirmaImage() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: CircularProgressIndicator(),
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                cargandoFirmas,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: textMedium,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -172,18 +185,18 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const Icon(Icons.error_outline, color: errorRed, size: 48),
           const SizedBox(height: 16),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(color: errorRed),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: _loadFirmaIfNeeded,
             icon: const Icon(Icons.refresh),
-            label: const Text('Reintentar'),
+            label: const Text(botonReintentar),
           ),
         ],
       );
@@ -193,9 +206,9 @@ class _FirmaDetalleScreenState extends State<FirmaDetalleScreen> {
       return const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+          Icon(Icons.image_not_supported, size: 48, color: grey500),
           SizedBox(height: 8),
-          Text('No hay imagen de firma disponible'),
+          Text(imagenNoDisponible),
         ],
       );
     }

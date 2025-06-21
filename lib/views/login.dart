@@ -312,7 +312,7 @@ class _LoginViewState extends State<_LoginView> {
             children: [
               const SizedBox(height: 8),
               Text(
-                '$loginVersionPrefix $version',
+                '$appVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
                 style: TextStyle(color: Colors.grey[500], fontSize: 10),
               ),
             ],

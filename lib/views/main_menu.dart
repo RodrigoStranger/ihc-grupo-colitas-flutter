@@ -117,7 +117,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              '$loginVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
+              '$appVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
               style: TextStyle(color: Colors.grey[500], fontSize: 10),
             ),
           ),
