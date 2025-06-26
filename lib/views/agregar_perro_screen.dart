@@ -196,7 +196,8 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
       if (exito) {
         if (mounted) {
           _mostrarExito(perroGuardadoExito);
-          Navigator.of(context).pop();
+          // Retornar true para indicar que se creó un perro exitosamente
+          Navigator.of(context).pop(true);
         }
       } else {
         _mostrarError(viewModel.error ?? errorGuardarPerro);

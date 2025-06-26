@@ -137,8 +137,11 @@ class _PerrosScreenState extends State<PerrosScreen> {
           },
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).pushNamed('/agregar-perro');
+          onPressed: () async {
+            // Navegar a agregar perro y esperar el resultado
+            await Navigator.of(context).pushNamed('/agregar-perro');
+            // No necesitamos actualizar manualmente ya que el ViewModel 
+            // se encarga de recargar la lista automáticamente
           },
           backgroundColor: accentBlue,
           foregroundColor: Colors.white,
