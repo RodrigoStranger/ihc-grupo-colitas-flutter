@@ -5,6 +5,7 @@ import '../core/colors.dart';
 import '../core/strings.dart';
 import '../widgets/menu_option_card.dart';
 import 'campanas_screen.dart'; // Asegúrate de importar la pantalla de campañas
+import 'perros_screen.dart'; // Importar la pantalla de perros
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -106,7 +107,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onAnimalesTap() {
-    // TODO: Implementar navegación o acción para animales
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PerrosScreen()),
+    );
   }
 
   Widget _buildFooter(String version) {

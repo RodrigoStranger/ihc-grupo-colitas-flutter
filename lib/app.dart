@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'views/login.dart';
 import 'views/main_menu.dart';
+import 'views/perros_screen.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/login_viewmodel.dart';
+import 'viewmodels/perro_viewmodel.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -22,6 +24,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<LoginViewModel>(
           create: (context) => LoginViewModel(authRepository: authRepository),
         ),
+
+        // ViewModel de perros
+        ChangeNotifierProvider<PerroViewModel>(
+          create: (context) => PerroViewModel(),
+        ),
       ],
       child: MaterialApp(
         title: 'Grupo Colitas Arequipa',
@@ -32,6 +39,7 @@ class MyApp extends StatelessWidget {
           '/': (context) => const LoginScreen(),
           '/login': (context) => const LoginScreen(),
           '/menu': (context) => const MainMenuScreen(),
+          '/perros': (context) => const PerrosScreen(),
         },
       ),
     );

@@ -79,3 +79,37 @@ const String validacionCampoRequerido = 'Este campo es requerido';
 const String validacionEmailInvalido = 'Ingresa un correo electrónico válido';
 const String validacionMinCaracteres = 'Debe tener al menos %d caracteres';
 const String validacionMaxCaracteres = 'No debe exceder los %d caracteres';
+
+// --- PANTALLA DE PERROS ---
+const String perrosNoRegistrados = 'No hay perros registrados en el refugio.';
+const String perrosCargando = 'Cargando perros...';
+const String perrosErrorCargar = 'Error al cargar los perros';
+
+// --- PANTALLA DE AGREGAR PERRO ---
+const String agregarPerroTitulo = 'Agregar Nuevo Perro';
+const String perroNombreLabel = 'Nombre del perro';
+const String perroEdadLabel = 'Edad (años)';
+const String perroSexoLabel = 'Sexo';
+const String perroRazaLabel = 'Raza';
+const String perroPelajeLabel = 'Tipo de pelaje';
+const String perroActividadLabel = 'Nivel de actividad';
+const String perroEstadoLabel = 'Estado';
+const String perroDescripcionLabel = 'Descripción';
+const String perroFotoLabel = 'Foto del perro';
+const String seleccionarFoto = 'Seleccionar foto';
+const String cambiarFoto = 'Cambiar foto';
+const String guardandoPerro = 'Guardando perro...';
+const String perroGuardadoExito = 'Perro guardado exitosamente';
+const String errorGuardarPerro = 'Error al guardar el perro';
+const String errorSubirImagen = 'Error al subir la imagen';
+const String seleccionarImagenRequerida = 'Debe seleccionar una imagen del perro';
+
+// Opciones para campos de perro
+const String sexoMacho = 'Macho';
+const String sexoHembra = 'Hembra';
+const String estadoDisponible = 'Disponible';
+const String estadoAdoptado = 'Adoptado';
+const String estadoTratamiento = 'En Tratamiento';
+const String actividadBaja = 'Baja';
+const String actividadMedia = 'Media';
+const String actividadAlta = 'Alta';
