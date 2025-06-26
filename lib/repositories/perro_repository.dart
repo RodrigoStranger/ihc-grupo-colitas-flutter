@@ -1,13 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import '../models/perro_model.dart';
 import '../core/supabase.dart';
 
 /// Repositorio para manejar operaciones CRUD de perros
 class PerroRepository {
   final SupabaseClient _supabase = SupabaseConfig.client;
-  
-  // Duración del caché para URLs firmadas (24 horas)
-  static const int _cacheExpiration = 24 * 60 * 60;
 
   /// Obtiene todos los perros (acceso público)
   Future<List<PerroModel>> getAllPerros() async {
@@ -31,7 +30,7 @@ class PerroRepository {
       final response = await _supabase
           .from('Perros')
           .select()
-          .eq('id', id)
+          .eq('IdPerro', id)
           .maybeSingle();
 
       if (response != null) {
@@ -43,27 +42,11 @@ class PerroRepository {
     }
   }
 
-  /// Obtiene perros por usuario (solo para usuarios autenticados)
+  /// Obtiene perros por usuario (deprecado - usar getAllPerros)
+  @Deprecated('Use getAllPerros() instead - no user filtering available')
   Future<List<PerroModel>> getPerrosByUser(String userId) async {
-    try {
-      // Verificar que el usuario esté autenticado
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        throw Exception('Usuario no autenticado');
-      }
-
-      final response = await _supabase
-          .from('Perros')
-          .select()
-          .eq('user_id', userId)
-          .order('IngresoPerro', ascending: false);
-
-      return (response as List)
-          .map((perro) => PerroModel.fromJson(perro))
-          .toList();
-    } catch (e) {
-      throw Exception('Error al obtener perros del usuario: $e');
-    }
+    // Como no tenemos user_id en la tabla, retornamos todos los perros
+    return getAllPerros();
   }
 
   /// Crea un nuevo perro (solo usuarios autenticados)
@@ -80,12 +63,9 @@ class PerroRepository {
         throw Exception('Datos del perro inválidos');
       }
 
-      // Agregar el ID del usuario al perro
-      final perroWithUser = perro.copyWith(userId: user.id);
-      
       final response = await _supabase
           .from('Perros')
-          .insert(perroWithUser.toJson())
+          .insert(perro.toJson())
           .select()
           .single();
 
@@ -104,14 +84,10 @@ class PerroRepository {
         throw Exception('Debe estar autenticado para actualizar un perro');
       }
 
-      // Verificar que el perro existe y pertenece al usuario
+      // Verificar que el perro existe
       final existingPerro = await getPerroById(id);
       if (existingPerro == null) {
         throw Exception('Perro no encontrado');
-      }
-      
-      if (existingPerro.userId != user.id) {
-        throw Exception('No tiene permisos para actualizar este perro');
       }
 
       // Validar datos del perro
@@ -122,8 +98,7 @@ class PerroRepository {
       final response = await _supabase
           .from('Perros')
           .update(perro.toJson())
-          .eq('id', id)
-          .eq('user_id', user.id) // Doble verificación de seguridad
+          .eq('IdPerro', id)
           .select()
           .single();
 
@@ -166,14 +141,96 @@ class PerroRepository {
     }
   }
 
-  /// Obtiene la URL firmada para la imagen de un perro
-  Future<String> getSignedImageUrl(String fileName) async {
-    if (fileName.contains('/')) {
-      fileName = fileName.split('/').last;
+  /// Sube una imagen al bucket de Supabase Storage
+  Future<String> uploadImage(String filePath, String fileName) async {
+    try {
+      // Verificar que el usuario esté autenticado
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      // Subir la imagen al bucket 'perros'
+      await _supabase.storage
+          .from('perros')
+          .upload(fileName, File(filePath), 
+                  fileOptions: const FileOptions(
+                    cacheControl: '3600',
+                    upsert: true, // Permite sobrescribir si ya existe
+                  ));
+
+      // Retornar solo el nombre del archivo (como en firmas)
+      return fileName;
+    } catch (e) {
+      throw Exception('Error al subir imagen: $e');
     }
-    
-    return await _supabase.storage
-        .from('perros')
-        .createSignedUrl(fileName, _cacheExpiration);
+  }
+
+  /// Sube una imagen desde bytes al bucket de Supabase Storage
+  Future<String> uploadImageFromBytes(Uint8List bytes, String fileName) async {
+    try {
+      // Verificar que el usuario esté autenticado
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      // Subir la imagen al bucket 'perros'
+      await _supabase.storage
+          .from('perros')
+          .uploadBinary(fileName, bytes,
+                       fileOptions: const FileOptions(
+                         cacheControl: '3600',
+                         upsert: true, // Permite sobrescribir si ya existe
+                       ));
+
+      // Retornar solo el nombre del archivo (como en firmas)
+      return fileName;
+    } catch (e) {
+      throw Exception('Error al subir imagen: $e');
+    }
+  }
+
+  /// Elimina una imagen del bucket de Supabase Storage
+  Future<void> deleteImage(String fileName) async {
+    try {
+      // Verificar que el usuario esté autenticado
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      if (fileName.contains('/')) {
+        fileName = fileName.split('/').last;
+      }
+
+      await _supabase.storage
+          .from('perros')
+          .remove([fileName]);
+    } catch (e) {
+      throw Exception('Error al eliminar imagen: $e');
+    }
+  }
+
+  /// Obtiene la URL firmada para la imagen de un perro (igual que en firmas)
+  Future<String> getSignedImageUrl(String fileName) async {
+    try {
+      // Si contiene '/', extraer solo el nombre del archivo
+      if (fileName.contains('/')) {
+        fileName = fileName.split('/').last;
+      }
+      
+      // Verificar que el archivo no esté vacío
+      if (fileName.isEmpty) {
+        throw Exception('Nombre de archivo vacío');
+      }
+      
+      // Generar URL firmada (como en firmas) - 1 hora de duración
+      return await _supabase.storage
+          .from('perros')
+          .createSignedUrl(fileName, 3600);
+    } catch (e) {
+      throw Exception('Error al obtener URL de imagen: $e');
+    }
   }
 }

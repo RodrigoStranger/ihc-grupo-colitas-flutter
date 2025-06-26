@@ -10,8 +10,8 @@ class PerroModel {
   final String estadoPerro;
   final String? fotoPerro; // Nombre del archivo de imagen (nombrePerro.png)
   final String descripcionPerro;
-  final DateTime ingresoPerro;
-  final String? userId; // ID del usuario que creó el registro (para control de acceso)
+  final String estaturaPerro; // Nuevo campo
+  final String ingresoPerro; // Ahora es String en lugar de DateTime
   final bool isLoadingImage; // Para manejar el estado de carga de la imagen
   final String? errorLoadingImage; // Para manejar errores de carga de imagen
 
@@ -26,8 +26,8 @@ class PerroModel {
     required this.estadoPerro,
     this.fotoPerro,
     required this.descripcionPerro,
+    required this.estaturaPerro,
     required this.ingresoPerro,
-    this.userId,
     this.isLoadingImage = false,
     this.errorLoadingImage,
   });
@@ -35,19 +35,21 @@ class PerroModel {
   /// Valida que el modelo tenga datos válidos
   bool isValid() {
     return nombrePerro.isNotEmpty &&
-           edadPerro >= 0 && edadPerro <= 25 &&
+           edadPerro >= 0 && edadPerro <= 15 &&
            sexoPerro.isNotEmpty &&
            razaPerro.isNotEmpty &&
            pelajePerro.isNotEmpty &&
            actividadPerro.isNotEmpty &&
            estadoPerro.isNotEmpty &&
-           descripcionPerro.isNotEmpty;
+           descripcionPerro.isNotEmpty &&
+           estaturaPerro.isNotEmpty &&
+           ingresoPerro.isNotEmpty;
   }
 
   /// Crea un PerroModel desde datos de Supabase
   factory PerroModel.fromJson(Map<String, dynamic> json) {
     return PerroModel(
-      id: json['id']?.toString(),
+      id: json['IdPerro']?.toString(),
       nombrePerro: json['NombrePerro'] ?? '',
       edadPerro: json['EdadPerro'] ?? 0,
       sexoPerro: json['SexoPerro'] ?? '',
@@ -57,10 +59,8 @@ class PerroModel {
       estadoPerro: json['EstadoPerro'] ?? '',
       fotoPerro: json['FotoPerro'] as String?,
       descripcionPerro: json['DescripcionPerro'] ?? '',
-      ingresoPerro: json['IngresoPerro'] != null 
-          ? DateTime.parse(json['IngresoPerro']) 
-          : DateTime.now(),
-      userId: json['user_id'],
+      estaturaPerro: json['EstaturaPerro'] ?? '',
+      ingresoPerro: json['IngresoPerro'] ?? '',
       isLoadingImage: false,
     );
   }
@@ -77,13 +77,13 @@ class PerroModel {
       'EstadoPerro': estadoPerro,
       'FotoPerro': fotoPerro,
       'DescripcionPerro': descripcionPerro,
-      'IngresoPerro': ingresoPerro.toIso8601String(),
-      'user_id': userId,
+      'EstaturaPerro': estaturaPerro,
+      'IngresoPerro': ingresoPerro,
     };
     
     // Solo incluir el ID si no es null (para actualizaciones)
     if (id != null) {
-      map['id'] = id;
+      map['IdPerro'] = id;
     }
     
     return map;
@@ -101,8 +101,8 @@ class PerroModel {
     String? estadoPerro,
     String? fotoPerro,
     String? descripcionPerro,
-    DateTime? ingresoPerro,
-    String? userId,
+    String? estaturaPerro,
+    String? ingresoPerro,
     bool? isLoadingImage,
     String? errorLoadingImage,
   }) {
@@ -117,8 +117,8 @@ class PerroModel {
       estadoPerro: estadoPerro ?? this.estadoPerro,
       fotoPerro: fotoPerro ?? this.fotoPerro,
       descripcionPerro: descripcionPerro ?? this.descripcionPerro,
+      estaturaPerro: estaturaPerro ?? this.estaturaPerro,
       ingresoPerro: ingresoPerro ?? this.ingresoPerro,
-      userId: userId ?? this.userId,
       isLoadingImage: isLoadingImage ?? this.isLoadingImage,
       errorLoadingImage: errorLoadingImage ?? this.errorLoadingImage,
     );
@@ -126,7 +126,7 @@ class PerroModel {
 
   @override
   String toString() {
-    return 'PerroModel(id: $id, nombrePerro: $nombrePerro, edadPerro: $edadPerro, sexoPerro: $sexoPerro, razaPerro: $razaPerro, pelajePerro: $pelajePerro, actividadPerro: $actividadPerro, estadoPerro: $estadoPerro, fotoPerro: $fotoPerro, descripcionPerro: $descripcionPerro, ingresoPerro: $ingresoPerro, userId: $userId)';
+    return 'PerroModel(id: $id, nombrePerro: $nombrePerro, edadPerro: $edadPerro, sexoPerro: $sexoPerro, razaPerro: $razaPerro, pelajePerro: $pelajePerro, actividadPerro: $actividadPerro, estadoPerro: $estadoPerro, fotoPerro: $fotoPerro, descripcionPerro: $descripcionPerro, estaturaPerro: $estaturaPerro, ingresoPerro: $ingresoPerro)';
   }
 
   @override
@@ -144,8 +144,8 @@ class PerroModel {
       other.estadoPerro == estadoPerro &&
       other.fotoPerro == fotoPerro &&
       other.descripcionPerro == descripcionPerro &&
-      other.ingresoPerro == ingresoPerro &&
-      other.userId == userId;
+      other.estaturaPerro == estaturaPerro &&
+      other.ingresoPerro == ingresoPerro;
   }
 
   @override
@@ -160,7 +160,7 @@ class PerroModel {
       estadoPerro.hashCode ^
       fotoPerro.hashCode ^
       descripcionPerro.hashCode ^
-      ingresoPerro.hashCode ^
-      userId.hashCode;
+      estaturaPerro.hashCode ^
+      ingresoPerro.hashCode;
   }
 }

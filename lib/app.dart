@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'views/login.dart';
 import 'views/main_menu.dart';
 import 'views/perros_screen.dart';
+import 'views/agregar_perro_screen.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/perro_viewmodel.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/menu': (context) => const MainMenuScreen(),
           '/perros': (context) => const PerrosScreen(),
+          '/agregar-perro': (context) => const AgregarPerroScreen(),
         },
       ),
     );

@@ -4,6 +4,7 @@ import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/perro_viewmodel.dart';
 import '../models/perro_model.dart';
+import 'perro_detalle_screen.dart';
 
 class PerrosScreen extends StatefulWidget {
   const PerrosScreen({super.key});
@@ -77,68 +78,71 @@ class _PerrosScreenState extends State<PerrosScreen> {
             if (viewModel.error != null && viewModel.perros.isEmpty) {
               return Center(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: errorRed,
+                      color: Colors.red,
                     ),
                     const SizedBox(height: 16),
-                        Text(
-                          perrosErrorCargar,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Text(
-                            viewModel.error!,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => viewModel.getAllPerros(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentBlue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text(botonReintentar),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (viewModel.perros.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        perrosNoRegistrados,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.black,
-                        ),
-                        textAlign: TextAlign.center,
+                    Text(
+                      'Error: ${viewModel.error}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                }
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => viewModel.getAllPerros(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentBlue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-                return RefreshIndicator(
-                  onRefresh: () => viewModel.getAllPerros(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: viewModel.perros.length,
-                    itemBuilder: (context, index) {
-                      final perro = viewModel.perros[index];
-                      return _buildPerroCard(perro);
-                    },
+            if (viewModel.perros.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    perrosNoRegistrados,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.black,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                );
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () => viewModel.getAllPerros(),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: viewModel.perros.length,
+                itemBuilder: (context, index) {
+                  final perro = viewModel.perros[index];
+                  return _buildPerroCard(perro);
+                },
+              ),
+            );
           },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed('/agregar-perro');
+          },
+          backgroundColor: accentBlue,
+          foregroundColor: Colors.white,
+          child: const Icon(Icons.add),
         ),
       ),
     );
@@ -192,38 +196,84 @@ class _PerrosScreenState extends State<PerrosScreen> {
                       '${perro.sexoPerro} • ${perro.edadPerro} años',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: textMedium,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 
-                // Raza y pelaje
-                _buildInfoRow('Raza:', perro.razaPerro),
-                const SizedBox(height: 4),
-                _buildInfoRow('Pelaje:', perro.pelajePerro),
-                const SizedBox(height: 4),
-                _buildInfoRow('Actividad:', perro.actividadPerro),
-                const SizedBox(height: 12),
+                // Raza
+                Text(
+                  perro.razaPerro,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: textMedium,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 
-                // Descripción
+                // Descripción (truncada)
                 Text(
                   perro.descripcionPerro,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: textMedium,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 
+                // Información adicional
+                Row(
+                  children: [
+                    Icon(
+                      Icons.palette,
+                      size: 14,
+                      color: textMedium,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      perro.pelajePerro,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: textMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(
+                      Icons.directions_run,
+                      size: 14,
+                      color: textMedium,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        perro.actividadPerro,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: textMedium,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                
                 // Fecha de ingreso
-                Text(
-                  'Ingreso: ${_formatDate(perro.ingresoPerro)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: textLight,
-                    fontSize: 11,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: textMedium,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Ingreso: ${_formatDate(perro.ingresoPerro)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: textMedium,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -235,274 +285,88 @@ class _PerrosScreenState extends State<PerrosScreen> {
 
   Widget _buildEstadoChip(String estado) {
     Color color;
+    IconData icon;
+    
     switch (estado.toLowerCase()) {
       case 'disponible':
-        color = successGreen;
+        color = Colors.green;
+        icon = Icons.pets;
         break;
       case 'adoptado':
+        color = Colors.orange;
+        icon = Icons.home;
+        break;
+      case 'en proceso':
         color = accentBlue;
+        icon = Icons.pending;
         break;
       default:
-        color = grey500;
+        color = Colors.grey;
+        icon = Icons.help_outline;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        estado,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            estado,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 70,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: textMedium,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              color: textDark,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  String _formatDate(String dateString) {
+    if (dateString.isEmpty) return 'No disponible';
+    try {
+      // Si es una fecha ISO, extraer solo la parte de la fecha
+      if (dateString.contains('T')) {
+        return dateString.split('T')[0];
+      }
+      return dateString;
+    } catch (e) {
+      return 'Fecha inválida';
+    }
   }
 
   void _showPerroDetails(PerroModel perro) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Text(
-          perro.nombrePerro,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textDark,
+    // Encontrar el índice del perro para pasarlo a la pantalla de detalle
+    final index = _viewModel.perros.indexOf(perro);
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider.value(
+          value: _viewModel,
+          child: PerroDetalleScreen(
+            perro: perro,
+            perroIndex: index >= 0 ? index : null,
           ),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Foto del perro
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildPerroImage(perro, 200),
-              ),
-              const SizedBox(height: 16),
-              
-              // Información detallada
-              _buildDetailRow('Edad', '${perro.edadPerro} años'),
-              _buildDetailRow('Sexo', perro.sexoPerro),
-              _buildDetailRow('Raza', perro.razaPerro),
-              _buildDetailRow('Pelaje', perro.pelajePerro),
-              _buildDetailRow('Actividad', perro.actividadPerro),
-              _buildDetailRow('Estado', perro.estadoPerro),
-              const SizedBox(height: 12),
-              
-              // Descripción
-              Text(
-                'Descripción:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                perro.descripcionPerro,
-                style: TextStyle(color: textMedium),
-              ),
-              const SizedBox(height: 12),
-              
-              // Fecha de ingreso
-              Text(
-                'Fecha de ingreso: ${_formatDate(perro.ingresoPerro)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: textMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: accentBlue,
-            ),
-            child: const Text('Cerrar'),
-          ),
-        ],
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: textDark,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(color: textMedium),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Construye el widget de imagen del perro con manejo de carga
-  Widget _buildPerroImage(PerroModel perro, double height) {
-    if (perro.fotoPerro == null || perro.fotoPerro!.isEmpty) {
-      return Container(
-        width: double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          color: grey200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(
-          Icons.pets,
-          size: 80,
-          color: Colors.grey,
-        ),
-      );
-    }
-
-    if (perro.isLoadingImage) {
-      return Container(
-        width: double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          color: grey200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (perro.errorLoadingImage != null) {
-      return Container(
-        width: double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          color: grey200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 40,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Error al cargar imagen',
-              style: TextStyle(
-                color: textMedium,
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Si la imagen no es una URL, cargar la URL firmada
-    if (!perro.fotoPerro!.startsWith('http')) {
-      // Encontrar el índice del perro en la lista para cargar la imagen
-      final viewModel = Provider.of<PerroViewModel>(context, listen: false);
-      final index = viewModel.perros.indexOf(perro);
-      if (index != -1) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          viewModel.loadPerroImage(index);
-        });
+    ).then((_) {
+      // Refrescar la lista al volver de la pantalla de detalle
+      // en caso de que se haya actualizado el estado del perro
+      if (mounted) {
+        _viewModel.getAllPerros();
       }
-      
-      return Container(
-        width: double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          color: grey200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    return Image.network(
-      perro.fotoPerro!,
-      width: double.infinity,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: double.infinity,
-          height: height,
-          decoration: BoxDecoration(
-            color: grey200,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.pets,
-            size: 80,
-            color: Colors.grey,
-          ),
-        );
-      },
-    );
+    });
   }
 }

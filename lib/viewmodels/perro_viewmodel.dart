@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:io';
 import '../models/perro_model.dart';
 import '../repositories/perro_repository.dart';
 
@@ -105,6 +106,36 @@ class PerroViewModel extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Crea un nuevo perro con imagen
+  Future<bool> createPerroWithImage(PerroModel perro, File imagen) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Primero subir la imagen
+      final nombreArchivo = await _perroRepository.uploadImage(
+        imagen.path, 
+        perro.fotoPerro!
+      );
+      
+      // Crear el perro con el nombre del archivo
+      final perroConImagen = perro.copyWith(fotoPerro: nombreArchivo);
+      await _perroRepository.createPerro(perroConImagen);
+      
+      // Recargar la lista
+      await getAllPerros();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -226,66 +257,6 @@ class PerroViewModel extends ChangeNotifier {
 
     // Si no hay nombre de archivo de imagen, no hay nada que cargar
     if (perro.fotoPerro == null || perro.fotoPerro!.isEmpty) {
-      _perros[index] = perro.copyWith(
-        isLoadingImage: false,
-        errorLoadingImage: 'No hay imagen disponible',
-      );
-      return;
-    }
-
-    // Si ya hay una operación en curso para este perro, no hacer nada
-    if (_imageLoadingOperations.containsKey(index)) return;
-
-    final completer = Completer<void>();
-    _imageLoadingOperations[index] = completer.future;
-
-    try {
-      // Marcar como cargando
-      _perros[index] = perro.copyWith(
-        isLoadingImage: true,
-        errorLoadingImage: null,
-      );
-
-      // Obtener la URL firmada
-      final imageUrl = await _perroRepository.getSignedImageUrl(perro.fotoPerro!);
-
-      if (!completer.isCompleted) {
-        // Actualizar el perro con la URL de la imagen
-        _perros[index] = perro.copyWith(
-          fotoPerro: imageUrl,
-          isLoadingImage: false,
-          errorLoadingImage: null,
-        );
-        completer.complete();
-      }
-    } catch (e) {
-      if (!completer.isCompleted) {
-        // Manejar error
-        _perros[index] = perro.copyWith(
-          isLoadingImage: false,
-          errorLoadingImage: 'Error al cargar imagen: $e',
-        );
-        completer.complete();
-      }
-    } finally {
-      _imageLoadingOperations.remove(index);
-    }
-  }
-
-  /// Carga la imagen de un perro específico
-  Future<void> loadPerroImage(int index) async {
-    if (index < 0 || index >= _perros.length) return;
-
-    final perro = _perros[index];
-
-    // Si ya está cargando o ya tiene una URL válida, no hacer nada
-    if (perro.isLoadingImage ||
-        (perro.fotoPerro != null && perro.fotoPerro!.startsWith('http'))) {
-      return;
-    }
-
-    // Si no hay nombre de archivo de imagen, no hay nada que cargar
-    if (perro.fotoPerro == null || perro.fotoPerro!.isEmpty) {
       _updatePerro(
         index,
         perro.copyWith(
@@ -339,6 +310,12 @@ class PerroViewModel extends ChangeNotifier {
     } finally {
       _imageLoadingOperations.remove(index);
     }
+  }
+
+  /// Carga la imagen de un perro específico
+  Future<void> loadPerroImage(int index) async {
+    await _loadPerroImageInternal(index);
+    _safeNotifyListeners();
   }
 
   /// Actualiza un perro específico en la lista de forma segura
