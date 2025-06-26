@@ -154,6 +154,17 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
     try {
       final viewModel = context.read<PerroViewModel>();
 
+      // Validar que todos los campos requeridos estén completos
+      if (_nombreController.text.trim().isEmpty ||
+          _edadController.text.trim().isEmpty ||
+          _razaController.text.trim().isEmpty ||
+          _descripcionController.text.trim().isEmpty ||
+          _pelajeSeleccionado.isEmpty ||
+          _estaturaSeleccionada.isEmpty) {
+        _mostrarError('Todos los campos son obligatorios');
+        return;
+      }
+
       // Validar y parsear la edad antes de crear el modelo
       int edadPerro;
       try {

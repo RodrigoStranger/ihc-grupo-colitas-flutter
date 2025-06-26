@@ -116,6 +116,11 @@ class PerroViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Verificar que la imagen existe antes de subirla
+      if (!await imagen.exists()) {
+        throw Exception('El archivo de imagen no existe');
+      }
+
       // Primero subir la imagen
       final nombreArchivo = await _perroRepository.uploadImage(
         imagen.path, 
@@ -129,8 +134,12 @@ class PerroViewModel extends ChangeNotifier {
       // Recargar la lista
       await getAllPerros();
       return true;
+    } on Exception catch (e) {
+      _error = 'Error específico: ${e.toString()}';
+      notifyListeners();
+      return false;
     } catch (e) {
-      _error = e.toString();
+      _error = 'Error inesperado: ${e.toString()}';
       notifyListeners();
       return false;
     } finally {

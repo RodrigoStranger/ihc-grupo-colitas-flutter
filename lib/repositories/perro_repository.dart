@@ -63,15 +63,21 @@ class PerroRepository {
         throw Exception('Datos del perro inválidos');
       }
 
+      final jsonData = perro.toJson();
+      
       final response = await _supabase
           .from('Perros')
-          .insert(perro.toJson())
+          .insert(jsonData)
           .select()
           .single();
 
       return PerroModel.fromJson(response);
-    } catch (e) {
+    } on PostgrestException catch (e) {
+      throw Exception('Error de base de datos: ${e.message}');
+    } on Exception catch (e) {
       throw Exception('Error al crear perro: $e');
+    } catch (e) {
+      throw Exception('Error inesperado al crear perro: $e');
     }
   }
 
@@ -150,10 +156,21 @@ class PerroRepository {
         throw Exception('Usuario no autenticado');
       }
 
+      // Verificar que el archivo existe
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('El archivo de imagen no existe: $filePath');
+      }
+
+      // Verificar que el nombre del archivo no esté vacío
+      if (fileName.isEmpty) {
+        throw Exception('El nombre del archivo no puede estar vacío');
+      }
+
       // Subir la imagen al bucket 'perros'
       await _supabase.storage
           .from('perros')
-          .upload(fileName, File(filePath), 
+          .upload(fileName, file, 
                   fileOptions: const FileOptions(
                     cacheControl: '3600',
                     upsert: true, // Permite sobrescribir si ya existe
@@ -161,8 +178,12 @@ class PerroRepository {
 
       // Retornar solo el nombre del archivo (como en firmas)
       return fileName;
-    } catch (e) {
+    } on StorageException catch (e) {
+      throw Exception('Error de storage: ${e.message}');
+    } on Exception catch (e) {
       throw Exception('Error al subir imagen: $e');
+    } catch (e) {
+      throw Exception('Error inesperado al subir imagen: $e');
     }
   }
 

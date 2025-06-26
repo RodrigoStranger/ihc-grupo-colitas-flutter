@@ -14,45 +14,37 @@ class PerrosScreen extends StatefulWidget {
 }
 
 class _PerrosScreenState extends State<PerrosScreen> {
-  late final PerroViewModel _viewModel;
-
   @override
   void initState() {
     super.initState();
-    _viewModel = PerroViewModel();
-    // Iniciar la carga inmediatamente
+    // Usar el ViewModel global y cargar datos si es necesario
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _viewModel.getAllPerros();
+        final viewModel = context.read<PerroViewModel>();
+        if (viewModel.perros.isEmpty) {
+          viewModel.getAllPerros();
+        }
       }
     });
   }
 
   @override
-  void dispose() {
-    _viewModel.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _viewModel,
-      child: Scaffold(
-        backgroundColor: lightPastelBlue,
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text(
-            menuAnimalesTitle,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+    return Scaffold(
+      backgroundColor: lightPastelBlue,
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          menuAnimalesTitle,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-          backgroundColor: accentBlue,
-          elevation: 0,
         ),
-        body: Consumer<PerroViewModel>(
+        backgroundColor: accentBlue,
+        elevation: 0,
+      ),
+      body: Consumer<PerroViewModel>(
           builder: (context, viewModel, child) {
             if (viewModel.isLoading && viewModel.perros.isEmpty) {
               return Center(
@@ -136,17 +128,27 @@ class _PerrosScreenState extends State<PerrosScreen> {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            // Navegar a agregar perro y esperar el resultado
-            await Navigator.of(context).pushNamed('/agregar-perro');
-            // No necesitamos actualizar manualmente ya que el ViewModel 
-            // se encarga de recargar la lista automáticamente
-          },
-          backgroundColor: accentBlue,
-          foregroundColor: Colors.white,
-          child: const Icon(Icons.add),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Capturar el contexto y ViewModel antes del gap asíncrono
+          final navigator = Navigator.of(context);
+          final viewModel = Provider.of<PerroViewModel>(context, listen: false);
+          
+          // Navegar a agregar perro y esperar el resultado
+          final resultado = await navigator.pushNamed('/agregar-perro');
+          
+          // Si se agregó un perro exitosamente, el ViewModel ya recargó la lista
+          // Pero podemos hacer una validación adicional si es necesario
+          if (resultado == true && mounted) {
+            // Solo recargar si la lista está vacía por alguna razón
+            if (viewModel.perros.isEmpty) {
+              await viewModel.getAllPerros();
+            }
+          }
+        },
+        backgroundColor: accentBlue,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -351,24 +353,22 @@ class _PerrosScreenState extends State<PerrosScreen> {
   }
 
   void _showPerroDetails(PerroModel perro) {
+    final viewModel = context.read<PerroViewModel>();
     // Encontrar el índice del perro para pasarlo a la pantalla de detalle
-    final index = _viewModel.perros.indexOf(perro);
+    final index = viewModel.perros.indexOf(perro);
     
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider.value(
-          value: _viewModel,
-          child: PerroDetalleScreen(
-            perro: perro,
-            perroIndex: index >= 0 ? index : null,
-          ),
+        builder: (context) => PerroDetalleScreen(
+          perro: perro,
+          perroIndex: index >= 0 ? index : null,
         ),
       ),
     ).then((_) {
       // Refrescar la lista al volver de la pantalla de detalle
       // en caso de que se haya actualizado el estado del perro
       if (mounted) {
-        _viewModel.getAllPerros();
+        viewModel.getAllPerros();
       }
     });
   }
