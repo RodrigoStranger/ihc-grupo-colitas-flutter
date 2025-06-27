@@ -33,6 +33,7 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _guardando = false;
   bool _seleccionandoImagen = false;
+  bool _mostrarValidacionImagen = false; // Para controlar cuándo mostrar la validación
 
   // Opciones para dropdowns
   final List<String> _opcionesSexo = [sexoMacho, sexoHembra];
@@ -123,6 +124,7 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
       if (imagen != null) {
         setState(() {
           _imagenSeleccionada = File(imagen.path);
+          _mostrarValidacionImagen = false; // Resetear la validación al seleccionar imagen
         });
       }
     } catch (e) {
@@ -138,12 +140,24 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
   }
 
   Future<void> _guardarPerro() async {
-    if (!_formKey.currentState!.validate()) {
+    // Validar imagen PRIMERO (es obligatoria)
+    if (_imagenSeleccionada == null) {
+      setState(() {
+        _mostrarValidacionImagen = true;
+      });
+      _mostrarError('❗ Debe seleccionar una foto del perro antes de guardar');
+      // Hacer scroll hacia arriba para mostrar la sección de imagen
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
       return;
     }
 
-    if (_imagenSeleccionada == null) {
-      _mostrarError(seleccionarImagenRequerida);
+    // Luego validar el formulario
+    if (!_formKey.currentState!.validate()) {
+      _mostrarError('Por favor complete todos los campos obligatorios');
       return;
     }
 
@@ -269,73 +283,142 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sección de imagen
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: grey100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: grey300),
-                ),
-                child: _imagenSeleccionada != null
-                    ? Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              _imagenSeleccionada!,
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white),
-                                onPressed: () {
-                                  setState(() {
-                                    _imagenSeleccionada = null;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : InkWell(
-                        onTap: _seleccionandoImagen ? null : _seleccionarImagen,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _seleccionandoImagen
-                                ? CircularProgressIndicator(
-                                    color: accentBlue,
-                                  )
-                                : Icon(
-                                    Icons.add_a_photo,
-                                    size: 64,
-                                    color: grey500,
-                                  ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _seleccionandoImagen ? 'Seleccionando...' : seleccionarFoto,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: grey600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+              // Sección de imagen (OBLIGATORIA)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Foto del perro',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: textDark,
                         ),
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '*',
+                        style: TextStyle(
+                          color: errorRed,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: grey100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (_mostrarValidacionImagen && _imagenSeleccionada == null) ? errorRed : grey300,
+                        width: (_mostrarValidacionImagen && _imagenSeleccionada == null) ? 2 : 1,
+                      ),
+                    ),
+                    child: _imagenSeleccionada != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  _imagenSeleccionada!,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white),                                onPressed: () {
+                                  setState(() {
+                                    _imagenSeleccionada = null;
+                                    _mostrarValidacionImagen = false; // Resetear validación al remover imagen
+                                  });
+                                },
+                                  ),
+                                ),
+                              ),
+                              // Indicador de éxito
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : InkWell(
+                            onTap: _seleccionandoImagen ? null : _seleccionarImagen,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _seleccionandoImagen
+                                    ? CircularProgressIndicator(
+                                        color: accentBlue,
+                                      )
+                                    : Icon(
+                                        Icons.add_a_photo,
+                                        size: 64,
+                                        color: (_mostrarValidacionImagen && _imagenSeleccionada == null) ? errorRed : grey500,
+                                      ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _seleccionandoImagen ? 'Seleccionando...' : seleccionarFoto,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: (_mostrarValidacionImagen && _imagenSeleccionada == null) ? errorRed : grey600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (_mostrarValidacionImagen && _imagenSeleccionada == null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Obligatoria',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: errorRed,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                  if (_mostrarValidacionImagen && _imagenSeleccionada == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, left: 12),
+                      child: Text(
+                        'Debe seleccionar una foto del perro',
+                        style: TextStyle(
+                          color: errorRed,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
               ),
           
           if (_imagenSeleccionada != null) ...[
@@ -595,12 +678,17 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
                         Text(guardandoPerro),
                       ],
                     )
-                  : const Text(
-                      'Guardar Perro',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Guardar Perro',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
             ),
           ),

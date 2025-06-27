@@ -19,6 +19,10 @@ class PerroViewModel extends ChangeNotifier {
   // Mapa para rastrear las operaciones de carga de imágenes en curso
   final Map<int, Future<void>> _imageLoadingOperations = {};
   
+  // Cache de URLs firmadas para evitar regenerarlas constantemente
+  final Map<String, String> _urlCache = {};
+  final Map<String, DateTime> _urlCacheExpiry = {};
+  
   // Flag para evitar múltiples notificaciones durante actualizaciones batch
   bool _isBatchUpdating = false;
   
@@ -43,6 +47,34 @@ class PerroViewModel extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  /// Obtiene URL firmada desde caché o la genera nueva si es necesaria
+  Future<String?> _getCachedImageUrl(String fileName) async {
+    // Verificar si tenemos una URL válida en caché
+    if (_urlCache.containsKey(fileName)) {
+      final expiry = _urlCacheExpiry[fileName];
+      if (expiry != null && DateTime.now().isBefore(expiry)) {
+        return _urlCache[fileName];
+      } else {
+        // URL expirada, limpiar del caché
+        _urlCache.remove(fileName);
+        _urlCacheExpiry.remove(fileName);
+      }
+    }
+
+    try {
+      // Generar nueva URL firmada
+      final newUrl = await _perroRepository.getSignedImageUrl(fileName);
+      
+      // Guardar en caché por 50 minutos (las URLs de Supabase duran 1 hora por defecto)
+      _urlCache[fileName] = newUrl;
+      _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 50));
+      
+      return newUrl;
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Obtiene todos los perros
@@ -289,10 +321,10 @@ class PerroViewModel extends ChangeNotifier {
         errorLoadingImage: null,
       ));
 
-      // Obtener la URL firmada
-      final imageUrl = await _perroRepository.getSignedImageUrl(perro.fotoPerro!);
+      // Obtener la URL firmada desde caché
+      final imageUrl = await _getCachedImageUrl(perro.fotoPerro!);
 
-      if (!completer.isCompleted) {
+      if (!completer.isCompleted && imageUrl != null) {
         // Actualizar el perro con la URL de la imagen
         _updatePerro(
           index,
@@ -300,6 +332,16 @@ class PerroViewModel extends ChangeNotifier {
             fotoPerro: imageUrl,
             isLoadingImage: false,
             errorLoadingImage: null,
+          ),
+        );
+        completer.complete();
+      } else if (!completer.isCompleted) {
+        // No se pudo obtener la URL
+        _updatePerro(
+          index,
+          perro.copyWith(
+            isLoadingImage: false,
+            errorLoadingImage: 'No se pudo cargar la imagen',
           ),
         );
         completer.complete();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/perro_model.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
@@ -396,45 +397,37 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
                               )
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  _perro.fotoPerro!,
+                                child: CachedNetworkImage(
+                                  imageUrl: _perro.fotoPerro!,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20.0),
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded /
-                                                  loadingProgress.expectedTotalBytes!
-                                              : null,
-                                        ),
+                                  placeholder: (context, url) => Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: CircularProgressIndicator(
+                                        color: accentBlue,
                                       ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20.0),
-                                        child: Column(
-                                          children: [
-                                            Icon(
-                                              Icons.broken_image,
-                                              color: grey500,
-                                              size: 48,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'No se pudo cargar la imagen',
-                                              style: TextStyle(color: grey600),
-                                            ),
-                                          ],
-                                        ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.broken_image,
+                                            color: grey500,
+                                            size: 48,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'No se pudo cargar la imagen',
+                                            style: TextStyle(color: grey600),
+                                          ),
+                                        ],
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ),
                                 ),
                               ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/perro_viewmodel.dart';
@@ -14,6 +15,9 @@ class PerrosScreen extends StatefulWidget {
 }
 
 class _PerrosScreenState extends State<PerrosScreen> {
+  String _filtroEstado = 'Todos'; // Filtro seleccionado
+  final List<String> _opcionesFiltro = ['Todos', 'Disponible', 'Adoptado'];
+  
   @override
   void initState() {
     super.initState();
@@ -43,8 +47,76 @@ class _PerrosScreenState extends State<PerrosScreen> {
         ),
         backgroundColor: accentBlue,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list, color: Colors.white),
+            onSelected: (String value) {
+              setState(() {
+                _filtroEstado = value;
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return _opcionesFiltro.map((String opcion) {
+                return PopupMenuItem<String>(
+                  value: opcion,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _filtroEstado == opcion ? Icons.check : Icons.circle_outlined,
+                        color: _filtroEstado == opcion ? accentBlue : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(opcion),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ],
       ),
-      body: Consumer<PerroViewModel>(
+      body: Column(
+        children: [
+          // Chip indicador del filtro activo
+          if (_filtroEstado != 'Todos')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 16,
+                    color: accentBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filtrando: $_filtroEstado',
+                    style: TextStyle(
+                      color: accentBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _filtroEstado = 'Todos';
+                      });
+                    },
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: accentBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Lista de perros
+          Expanded(
+            child: Consumer<PerroViewModel>(
           builder: (context, viewModel, child) {
             if (viewModel.isLoading && viewModel.perros.isEmpty) {
               return Center(
@@ -115,21 +187,65 @@ class _PerrosScreenState extends State<PerrosScreen> {
               );
             }
 
+            final perrosFiltrados = _filtrarPerros(viewModel.perros);
+            
+            // Precargar imágenes para mejor rendimiento
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _precacheVisibleImages(perrosFiltrados);
+            });
+            
+            if (perrosFiltrados.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.search_off,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay perros $_filtroEstado'.toLowerCase(),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Intenta cambiar el filtro',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[500],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             return RefreshIndicator(
               onRefresh: () => viewModel.getAllPerros(),
               color: accentBlue,
               backgroundColor: Colors.white,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: viewModel.perros.length,
+                itemCount: perrosFiltrados.length,
                 itemBuilder: (context, index) {
-                  final perro = viewModel.perros[index];
+                  final perro = perrosFiltrados[index];
                   return _buildPerroCard(perro);
                 },
               ),
             );
           },
         ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           // Capturar el contexto y ViewModel antes del gap asíncrono
@@ -169,9 +285,54 @@ class _PerrosScreenState extends State<PerrosScreen> {
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Imagen del perro
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[200],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: perro.fotoPerro != null && perro.fotoPerro!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: perro.fotoPerro!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                color: accentBlue,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Icon(
+                              Icons.pets,
+                              size: 40,
+                              color: Colors.grey[400],
+                            ),
+                            memCacheWidth: 200, // Optimizar el tamaño en memoria
+                            memCacheHeight: 200,
+                            // Configuración de caché agresiva
+                            cacheKey: perro.fotoPerro!.split('/').last, // Usar nombre de archivo como key
+                            fadeInDuration: const Duration(milliseconds: 200),
+                            fadeOutDuration: const Duration(milliseconds: 100),
+                          )
+                        : Icon(
+                            Icons.pets,
+                            size: 40,
+                            color: Colors.grey[400],
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Información del perro
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 // Encabezado con nombre y estado
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -282,6 +443,9 @@ class _PerrosScreenState extends State<PerrosScreen> {
                     ),
                   ],
                 ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -302,10 +466,6 @@ class _PerrosScreenState extends State<PerrosScreen> {
       case 'adoptado':
         color = Colors.orange;
         icon = Icons.home;
-        break;
-      case 'en proceso':
-        color = accentBlue;
-        icon = Icons.pending;
         break;
       default:
         color = Colors.grey;
@@ -354,6 +514,14 @@ class _PerrosScreenState extends State<PerrosScreen> {
     }
   }
 
+  // Función para filtrar perros por estado
+  List<PerroModel> _filtrarPerros(List<PerroModel> perros) {
+    if (_filtroEstado == 'Todos') {
+      return perros;
+    }
+    return perros.where((perro) => perro.estadoPerro.toLowerCase() == _filtroEstado.toLowerCase()).toList();
+  }
+
   void _showPerroDetails(PerroModel perro) {
     final viewModel = context.read<PerroViewModel>();
     // Encontrar el índice del perro para pasarlo a la pantalla de detalle
@@ -373,5 +541,36 @@ class _PerrosScreenState extends State<PerrosScreen> {
         viewModel.getAllPerros();
       }
     });
+  }
+
+  // Método para precargar imágenes de la lista visible
+  void _precacheVisibleImages(List<PerroModel> perros) {
+    for (int i = 0; i < perros.length && i < 10; i++) { // Solo las primeras 10
+      final perro = perros[i];
+      if (perro.fotoPerro != null && perro.fotoPerro!.isNotEmpty) {
+        try {
+          // Precargar la imagen en el cache
+          precacheImage(
+            CachedNetworkImageProvider(
+              perro.fotoPerro!,
+              cacheKey: perro.fotoPerro!.split('/').last,
+            ),
+            context,
+          );
+        } catch (e) {
+          // Ignorar errores de precache
+        }
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Precargar imágenes de los primeros 10 perros al construir el widget
+    final viewModel = context.read<PerroViewModel>();
+    if (viewModel.perros.isNotEmpty) {
+      _precacheVisibleImages(viewModel.perros);
+    }
   }
 }
