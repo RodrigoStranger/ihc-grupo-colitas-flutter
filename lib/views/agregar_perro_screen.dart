@@ -193,7 +193,8 @@ class _AgregarPerroScreenState extends State<AgregarPerroScreen> {
 
       // Crear el nombre del archivo basado en el nombre del perro y timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final nombreArchivo = '${_nombreController.text.trim().toLowerCase()}_$timestamp.png';
+      final extension = _imagenSeleccionada!.path.split('.').last.toLowerCase();
+      final nombreArchivo = '${_nombreController.text.trim().toLowerCase().replaceAll(' ', '_')}_$timestamp.$extension';
 
       // Crear el modelo del perro (temporalmente con el nombre del archivo) aqui ponemos el nombre del archivo
       final perro = PerroModel(

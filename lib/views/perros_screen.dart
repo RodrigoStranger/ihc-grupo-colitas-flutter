@@ -298,7 +298,9 @@ class _PerrosScreenState extends State<PerrosScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: perro.fotoPerro != null && perro.fotoPerro!.isNotEmpty
+                    child: perro.fotoPerro != null && 
+                           perro.fotoPerro!.isNotEmpty && 
+                           perro.fotoPerro!.startsWith('http')
                         ? CachedNetworkImage(
                             imageUrl: perro.fotoPerro!,
                             fit: BoxFit.cover,
@@ -320,11 +322,18 @@ class _PerrosScreenState extends State<PerrosScreen> {
                             fadeInDuration: const Duration(milliseconds: 200),
                             fadeOutDuration: const Duration(milliseconds: 100),
                           )
-                        : Icon(
-                            Icons.pets,
-                            size: 40,
-                            color: Colors.grey[400],
-                          ),
+                        : perro.isLoadingImage
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  color: accentBlue,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                Icons.pets,
+                                size: 40,
+                                color: Colors.grey[400],
+                              ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -547,7 +556,9 @@ class _PerrosScreenState extends State<PerrosScreen> {
   void _precacheVisibleImages(List<PerroModel> perros) {
     for (int i = 0; i < perros.length && i < 10; i++) { // Solo las primeras 10
       final perro = perros[i];
-      if (perro.fotoPerro != null && perro.fotoPerro!.isNotEmpty) {
+      if (perro.fotoPerro != null && 
+          perro.fotoPerro!.isNotEmpty && 
+          perro.fotoPerro!.startsWith('http')) {
         try {
           // Precargar la imagen en el cache
           precacheImage(

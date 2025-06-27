@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/perro_model.dart';
 import '../repositories/perro_repository.dart';
 
@@ -84,7 +85,12 @@ class PerroViewModel extends ChangeNotifier {
     notifyListeners(); // Notificación inmediata para mostrar el loading
 
     try {
-      _perros = await _perroRepository.getAllPerros();
+      final nuevosPerros = await _perroRepository.getAllPerros();
+      
+      // Limpiar caché de URLs de perros que ya no existen
+      _cleanupOrphanedCache(nuevosPerros);
+      
+      _perros = nuevosPerros;
       notifyListeners(); // Notificación inmediata cuando se obtienen los datos
       
       // Programar la carga de imágenes de forma asincrónica después del frame actual
@@ -99,6 +105,29 @@ class PerroViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners(); // Notificación inmediata al finalizar
+    }
+  }
+
+  /// Limpia del caché URLs de perros que ya no existen
+  void _cleanupOrphanedCache(List<PerroModel> currentPerros) {
+    // Obtener lista de nombres de archivos actuales
+    final currentFileNames = currentPerros
+        .where((p) => p.fotoPerro != null && !p.fotoPerro!.startsWith('http'))
+        .map((p) => p.fotoPerro!)
+        .toSet();
+    
+    // Eliminar del caché archivos que ya no están en la lista actual
+    final keysToRemove = <String>[];
+    for (final cachedFileName in _urlCache.keys) {
+      if (!currentFileNames.contains(cachedFileName)) {
+        keysToRemove.add(cachedFileName);
+      }
+    }
+    
+    for (final key in keysToRemove) {
+      _urlCache.remove(key);
+      _urlCacheExpiry.remove(key);
+      debugPrint('Cache limpiado para archivo huérfano: $key');
     }
   }
 
@@ -220,6 +249,99 @@ class PerroViewModel extends ChangeNotifier {
     }
   }
 
+  /// Actualiza un perro existente con nueva imagen
+  Future<bool> updatePerroWithImage(PerroModel perro, File imagenFile) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Guardar referencia a la imagen antigua para eliminarla si es necesario
+      final imagenAntigua = perro.fotoPerro;
+      debugPrint('Iniciando actualización de imagen. Imagen actual: $imagenAntigua');
+      
+      // Siempre generar un nuevo nombre único para evitar problemas de caché
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final extension = imagenFile.path.split('.').last.toLowerCase();
+      final nombrePerroLimpio = perro.nombrePerro.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
+      final nuevoNombreImagen = '${nombrePerroLimpio}_$timestamp.$extension';
+      debugPrint('Nuevo nombre de imagen generado: $nuevoNombreImagen');
+      
+      // 1. PRIMERO: Eliminar la imagen antigua del bucket si existe y es diferente
+      if (imagenAntigua != null && 
+          imagenAntigua.isNotEmpty && 
+          !imagenAntigua.startsWith('http') &&
+          imagenAntigua != nuevoNombreImagen) {
+        try {
+          await _perroRepository.deleteImage(imagenAntigua);
+          debugPrint('✓ Imagen antigua eliminada del bucket: $imagenAntigua');
+        } catch (e) {
+          debugPrint('⚠️ Advertencia: No se pudo eliminar la imagen antigua del bucket: $e');
+          // Continuar con la operación aunque falle la eliminación
+        }
+      }
+      
+      // 2. SEGUNDO: Invalidar completamente el caché de la imagen antigua
+      await invalidateImageCache(imagenAntigua);
+      
+      // 3. TERCERO: Subir la nueva imagen con el nuevo nombre
+      final nombreImagen = await _perroRepository.uploadImage(imagenFile.path, nuevoNombreImagen);
+      debugPrint('✓ Nueva imagen subida al bucket: $nombreImagen');
+      
+      // 4. CUARTO: Actualizar el perro en la base de datos con el nombre de la nueva imagen
+      final perroConImagenActualizada = PerroModel(
+        id: perro.id,
+        nombrePerro: perro.nombrePerro,
+        edadPerro: perro.edadPerro,
+        sexoPerro: perro.sexoPerro,
+        razaPerro: perro.razaPerro,
+        pelajePerro: perro.pelajePerro,
+        actividadPerro: perro.actividadPerro,
+        estadoPerro: perro.estadoPerro,
+        fotoPerro: nombreImagen, // Usar el nombre de la nueva imagen
+        descripcionPerro: perro.descripcionPerro,
+        estaturaPerro: perro.estaturaPerro,
+        ingresoPerro: perro.ingresoPerro,
+      );
+
+      await _perroRepository.updatePerro(perro.id!, perroConImagenActualizada);
+      debugPrint('✓ Perro actualizado en BD con nueva imagen: $nombreImagen');
+      
+      // Actualizar inmediatamente el perro en la lista local para UI inmediata
+      final index = _perros.indexWhere((p) => p.id == perro.id);
+      if (index != -1) {
+        // 5. QUINTO: Generar URL firmada para la nueva imagen y actualizar caché
+        final imageUrl = await _perroRepository.getSignedImageUrl(nombreImagen);
+        _urlCache[nombreImagen] = imageUrl;
+        _urlCacheExpiry[nombreImagen] = DateTime.now().add(const Duration(minutes: 50));
+        debugPrint('✓ Nueva imagen cacheada: $nombreImagen -> $imageUrl');
+        
+        // Actualizar el perro con la URL completa de la imagen para UI inmediata
+        final perroConUrl = perroConImagenActualizada.copyWith(fotoPerro: imageUrl);
+        _perros[index] = perroConUrl;
+        notifyListeners(); // Notificación inmediata para actualizar UI
+        debugPrint('✓ Lista local actualizada inmediatamente con URL de imagen');
+        
+        // Invalidar completamente el caché de la imagen anterior
+        await invalidateImageCache(imagenAntigua);
+      }
+      
+      // 6. SEXTO: Recargar la lista para asegurar consistencia
+      await getAllPerros();
+      debugPrint('✓ Lista de perros recargada');
+      
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error en updatePerroWithImage: $e');
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Valida los datos de un perro
   String? validatePerro(PerroModel perro) {
     if (perro.nombrePerro.trim().isEmpty) {
@@ -296,13 +418,32 @@ class PerroViewModel extends ChangeNotifier {
       return;
     }
 
-    // Si no hay nombre de archivo de imagen, no hay nada que cargar
-    if (perro.fotoPerro == null || perro.fotoPerro!.isEmpty) {
+    // Si no hay nombre de archivo de imagen válido, no hay nada que cargar
+    if (perro.fotoPerro == null || 
+        perro.fotoPerro!.isEmpty || 
+        perro.fotoPerro!.startsWith('http')) {
+      // Si es una URL, no necesita conversión
+      if (perro.fotoPerro != null && perro.fotoPerro!.startsWith('http')) {
+        return;
+      }
+      // Si no hay imagen o está vacía, marcar como sin imagen
       _updatePerro(
         index,
         perro.copyWith(
           isLoadingImage: false,
           errorLoadingImage: 'No hay imagen disponible',
+        ),
+      );
+      return;
+    }
+
+    // Validar que el nombre del archivo parece válido
+    if (!perro.fotoPerro!.contains('.') || perro.fotoPerro!.length < 5) {
+      _updatePerro(
+        index,
+        perro.copyWith(
+          isLoadingImage: false,
+          errorLoadingImage: 'Nombre de archivo inválido',
         ),
       );
       return;
@@ -386,10 +527,52 @@ class PerroViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Limpia completamente el caché de URLs
+  void clearImageCache() {
+    _urlCache.clear();
+    _urlCacheExpiry.clear();
+    debugPrint('Cache de imágenes limpiado completamente');
+  }
+
+  /// Invalida completamente el caché de una imagen específica
+  Future<void> invalidateImageCache(String? filename) async {
+    if (filename == null || filename.isEmpty || filename.startsWith('http')) {
+      return;
+    }
+
+    try {
+      // 1. Limpiar nuestro caché interno
+      _urlCache.remove(filename);
+      _urlCacheExpiry.remove(filename);
+      
+      // 2. Obtener la URL firmada para limpiar el caché de CachedNetworkImage
+      try {
+        final imageUrl = await _perroRepository.getSignedImageUrl(filename);
+        
+        // 3. Limpiar el caché de CachedNetworkImage
+        final cachedImageManager = DefaultCacheManager();
+        await cachedImageManager.removeFile(imageUrl);
+        
+        debugPrint('✓ Caché invalidado completamente para: $filename');
+      } catch (e) {
+        debugPrint('⚠️ No se pudo obtener URL para invalidar caché: $e');
+      }
+    } catch (e) {
+      debugPrint('❌ Error al invalidar caché de imagen: $e');
+    }
+  }
+
+  /// Obtiene la URL firmada de una imagen de forma pública
+  Future<String?> getImageUrl(String fileName) async {
+    return await _getCachedImageUrl(fileName);
+  }
+
   @override
   void dispose() {
     _disposed = true;
     _imageLoadingOperations.clear();
+    _urlCache.clear();
+    _urlCacheExpiry.clear();
     super.dispose();
   }
 }

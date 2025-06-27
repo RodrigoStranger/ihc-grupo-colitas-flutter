@@ -6,6 +6,7 @@ import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/perro_viewmodel.dart';
 import '../widgets/adopcion_confirmation_dialog.dart';
+import 'editar_perro_screen.dart'; // Asegúrate de importar la pantalla de edición
 
 class PerroDetalleScreen extends StatefulWidget {
   final PerroModel perro;
@@ -35,8 +36,8 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
   }
 
   Future<void> _loadPerroImageIfNeeded() async {
-    // Si ya tiene la imagen cargada o no hay índice de perro, no hacer nada
-    if (_perro.fotoPerro != null && _perro.fotoPerro!.startsWith('http') || widget.perroIndex == null) return;
+    // Si ya tiene una URL completa, no hacer nada
+    if (_perro.fotoPerro != null && _perro.fotoPerro!.startsWith('http')) return;
     
     setState(() {
       _isLoading = true;
@@ -45,18 +46,33 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
 
     try {
       final viewModel = context.read<PerroViewModel>();
-      await viewModel.loadPerroImage(widget.perroIndex!);
       
-      if (mounted) {
+      if (widget.perroIndex != null && widget.perroIndex! < viewModel.perros.length) {
+        // Si tenemos el índice válido, usar el método existente
+        await viewModel.loadPerroImage(widget.perroIndex!);
+        
+        // Actualizar el perro local con la nueva URL
+        final perroActualizado = viewModel.perros[widget.perroIndex!];
         setState(() {
-          _perro = viewModel.perros[widget.perroIndex!];
-          _isLoading = false;
+          _perro = perroActualizado;
         });
+      } else if (_perro.fotoPerro != null && _perro.fotoPerro!.isNotEmpty && !_perro.fotoPerro!.startsWith('http')) {
+        // Si no tenemos índice pero sí un nombre de archivo, obtener la URL directamente
+        final imageUrl = await viewModel.getImageUrl(_perro.fotoPerro!);
+        if (imageUrl != null && mounted) {
+          setState(() {
+            _perro = _perro.copyWith(fotoPerro: imageUrl);
+          });
+        }
       }
     } catch (e) {
+      debugPrint('Error cargando imagen: $e');
+      setState(() {
+        _error = 'Error al cargar imagen del perro';
+      });
+    } finally {
       if (mounted) {
         setState(() {
-          _error = 'Error al cargar imagen del perro';
           _isLoading = false;
         });
       }
@@ -212,6 +228,62 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _editarPerro() async {
+    final resultado = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditarPerroScreen(perro: _perro),
+      ),
+    );
+
+    // Si se editó exitosamente, recargar los datos
+    if (resultado == true && mounted) {
+      setState(() {
+        _isUpdating = true;
+        _error = null;
+      });
+
+      try {
+        // Recargar el perro desde el ViewModel actualizado
+        final viewModel = context.read<PerroViewModel>();
+        await viewModel.getAllPerros();
+        
+        // Encontrar el perro actualizado en la lista
+        final perroActualizado = viewModel.perros.firstWhere(
+          (p) => p.id == _perro.id,
+          orElse: () => _perro,
+        );
+        
+        setState(() {
+          _perro = perroActualizado;
+        });
+        
+        // Forzar la recarga de la imagen si es necesario
+        await _loadPerroImageIfNeeded();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Información del perro actualizada exitosamente'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error recargando datos después de editar: $e');
+        setState(() {
+          _error = 'Error al recargar los datos';
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isUpdating = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -395,41 +467,63 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
                                   ),
                                 ),
                               )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: _perro.fotoPerro!,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(20.0),
-                                      child: CircularProgressIndicator(
-                                        color: accentBlue,
+                            : (_perro.fotoPerro != null && 
+                               _perro.fotoPerro!.isNotEmpty && 
+                               _perro.fotoPerro!.startsWith('http'))
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: CachedNetworkImage(
+                                      imageUrl: _perro.fotoPerro!,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20.0),
+                                          child: CircularProgressIndicator(
+                                            color: accentBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) => Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20.0),
+                                          child: Column(
+                                            children: [
+                                              Icon(
+                                                Icons.broken_image,
+                                                color: grey500,
+                                                size: 48,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'No se pudo cargar la imagen',
+                                                style: TextStyle(color: grey600),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  errorWidget: (context, url, error) => Center(
+                                  )
+                                : Center(
                                     child: Padding(
                                       padding: const EdgeInsets.all(20.0),
                                       child: Column(
                                         children: [
                                           Icon(
-                                            Icons.broken_image,
-                                            color: grey500,
+                                            Icons.pets,
                                             size: 48,
+                                            color: grey500,
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'No se pudo cargar la imagen',
+                                            'Cargando imagen...',
                                             style: TextStyle(color: grey600),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
                   ),
                 ],
               ),
@@ -471,6 +565,31 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
               ),
               const SizedBox(height: 16),
             ],
+
+            // Botón para editar el perro
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : _editarPerro,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.edit),
+                label: const Text(
+                  'Editar Información',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
