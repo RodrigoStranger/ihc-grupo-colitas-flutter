@@ -117,6 +117,8 @@ class _PerrosScreenState extends State<PerrosScreen> {
 
             return RefreshIndicator(
               onRefresh: () => viewModel.getAllPerros(),
+              color: accentBlue,
+              backgroundColor: Colors.white,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: viewModel.perros.length,

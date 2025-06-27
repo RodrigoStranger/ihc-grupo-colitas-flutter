@@ -131,6 +131,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
             return RefreshIndicator(
               onRefresh: viewModel.fetchFirmas,
               color: accentBlue,
+              backgroundColor: Colors.white,
               child: ListView.separated(
                 controller: _scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
