@@ -221,15 +221,36 @@ class PerroRepository {
         throw Exception('Usuario no autenticado');
       }
 
+      // Limpiar el nombre del archivo si contiene rutas
+      String cleanFileName = fileName;
       if (fileName.contains('/')) {
-        fileName = fileName.split('/').last;
+        cleanFileName = fileName.split('/').last;
       }
 
+      // Verificar si el archivo existe antes de eliminarlo
+      final files = await _supabase.storage.from('perros').list();
+      final fileExists = files.any((file) => file.name == cleanFileName);
+      
+      if (!fileExists) {
+        return; // No es error si no existe
+      }
+
+      // Eliminar el archivo
       await _supabase.storage
           .from('perros')
-          .remove([fileName]);
+          .remove([cleanFileName]);
+      
+      // Verificar que se eliminó correctamente
+      await Future.delayed(const Duration(milliseconds: 500));
+      final filesAfter = await _supabase.storage.from('perros').list();
+      final stillExists = filesAfter.any((file) => file.name == cleanFileName);
+      
+      if (stillExists) {
+        throw Exception('No se pudo eliminar el archivo del bucket');
+      }
+      
     } catch (e) {
-      throw Exception('Error al eliminar imagen: $e');
+      rethrow;
     }
   }
 
@@ -252,6 +273,19 @@ class PerroRepository {
           .createSignedUrl(fileName, 3600);
     } catch (e) {
       throw Exception('Error al obtener URL de imagen: $e');
+    }
+  }
+
+  /// Lista todos los archivos en el bucket
+  Future<List<String>> listBucketFiles() async {
+    try {
+      final response = await _supabase.storage
+          .from('perros')
+          .list();
+      
+      return response.map((file) => file.name).toList();
+    } catch (e) {
+      return [];
     }
   }
 }
