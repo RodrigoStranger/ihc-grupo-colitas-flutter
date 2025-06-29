@@ -278,6 +278,169 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
     }
   }
 
+  Future<void> _marcarComoDisponible() async {
+    // Mostrar diálogo de confirmación
+    final confirmar = await _showDisponibleConfirmationDialog();
+
+    if (confirmar == true) {
+      await _actualizarEstadoPerroADisponible();
+    }
+  }
+
+  Future<bool?> _showDisponibleConfirmationDialog() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.pets,
+                color: Colors.green,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Confirmar cambio',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '¿Estás seguro de que quieres marcar a ${_perro.nombrePerro} como disponible para adopción nuevamente?',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Esta acción cambiará el estado del perro de "Adoptado" a "Disponible".',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Confirmar',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _actualizarEstadoPerroADisponible() async {
+    setState(() {
+      _isUpdating = true;
+      _error = null;
+    });
+
+    try {
+      final viewModel = context.read<PerroViewModel>();
+      
+      // Crear una copia del perro con estado disponible
+      final perroActualizado = _perro.copyWith(
+        estadoPerro: estadoDisponible,
+      );
+
+      // Actualizar en la base de datos
+      final exito = await viewModel.updatePerro(_perro.id!, perroActualizado);
+
+      if (exito) {
+        if (mounted) {
+          // Mostrar mensaje de éxito
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${_perro.nombrePerro} ha sido marcado como disponible'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          
+          // Actualizar el estado local
+          setState(() {
+            _perro = perroActualizado;
+          });
+          
+          // Forzar la recarga de la imagen si es necesario
+          await _loadPerroImageIfNeeded();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _error = 'Error al actualizar el estado del perro';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Error: ${e.toString()}';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -555,6 +718,42 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
                       : const Icon(Icons.favorite),
                   label: Text(
                     _isUpdating ? 'Actualizando...' : 'Marcar como Adoptado',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Botón para marcar como disponible (solo si está adoptado)
+            if (_perro.estadoPerro == estadoAdoptado) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _isUpdating ? null : _marcarComoDisponible,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: _isUpdating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.pets),
+                  label: Text(
+                    _isUpdating ? 'Actualizando...' : 'Marcar como Disponible',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
