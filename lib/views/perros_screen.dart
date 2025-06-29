@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
+import '../core/cache_config.dart';
 import '../viewmodels/perro_viewmodel.dart';
 import '../models/perro_model.dart';
 import 'perro_detalle_screen.dart';
@@ -26,7 +27,11 @@ class _PerrosScreenState extends State<PerrosScreen> {
       if (mounted) {
         final viewModel = context.read<PerroViewModel>();
         if (viewModel.perros.isEmpty) {
-          viewModel.getAllPerros();
+          // Usar el método optimizado para la primera carga
+          viewModel.initializeWithOptimizedImageLoading();
+        } else {
+          // Si ya hay perros cargados, pre-cargar las imágenes visibles
+          _precacheVisibleImages(viewModel.perros);
         }
       }
     });
@@ -304,23 +309,25 @@ class _PerrosScreenState extends State<PerrosScreen> {
                         ? CachedNetworkImage(
                             imageUrl: perro.fotoPerro!,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(
-                                color: accentBlue,
-                                strokeWidth: 2,
+                            cacheManager: CustomCacheManager.thumbnailInstance, // Usar cache optimizado para thumbnails
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[100],
+                              child: _buildShimmerPlaceholder(),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[100],
+                              child: Icon(
+                                Icons.pets,
+                                size: 40,
+                                color: Colors.grey[400],
                               ),
                             ),
-                            errorWidget: (context, url, error) => Icon(
-                              Icons.pets,
-                              size: 40,
-                              color: Colors.grey[400],
-                            ),
-                            memCacheWidth: 200, // Optimizar el tamaño en memoria
-                            memCacheHeight: 200,
+                            memCacheWidth: 150, // Optimizar para lista (más pequeño)
+                            memCacheHeight: 150,
                             // Configuración de caché agresiva
                             cacheKey: perro.fotoPerro!.split('/').last, // Usar nombre de archivo como key
-                            fadeInDuration: const Duration(milliseconds: 200),
-                            fadeOutDuration: const Duration(milliseconds: 100),
+                            fadeInDuration: const Duration(milliseconds: 150), // Más rápido
+                            fadeOutDuration: const Duration(milliseconds: 50),
                           )
                         : perro.isLoadingImage
                             ? Center(
@@ -536,6 +543,9 @@ class _PerrosScreenState extends State<PerrosScreen> {
     // Encontrar el índice del perro para pasarlo a la pantalla de detalle
     final index = viewModel.perros.indexOf(perro);
     
+    // Pre-cargar la imagen para edición rápida
+    viewModel.preloadPerroImageForEditing(perro.fotoPerro);
+    
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PerroDetalleScreen(
@@ -554,34 +564,52 @@ class _PerrosScreenState extends State<PerrosScreen> {
 
   // Método para precargar imágenes de la lista visible
   void _precacheVisibleImages(List<PerroModel> perros) {
-    for (int i = 0; i < perros.length && i < 10; i++) { // Solo las primeras 10
+    for (int i = 0; i < perros.length && i < 8; i++) { // Solo las primeras 8 (pantalla visible)
       final perro = perros[i];
       if (perro.fotoPerro != null && 
           perro.fotoPerro!.isNotEmpty && 
           perro.fotoPerro!.startsWith('http')) {
         try {
-          // Precargar la imagen en el cache
+          // Pre-cargar en el cache de Flutter
           precacheImage(
             CachedNetworkImageProvider(
               perro.fotoPerro!,
-              cacheKey: perro.fotoPerro!.split('/').last,
+              cacheManager: CustomCacheManager.thumbnailInstance,
             ),
             context,
+            onError: (exception, stackTrace) {
+              // Ignorar errores de pre-cache silenciosamente
+            },
           );
         } catch (e) {
-          // Ignorar errores de precache
+          // Ignorar errores de pre-cache silenciosamente
         }
       }
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Precargar imágenes de los primeros 10 perros al construir el widget
-    final viewModel = context.read<PerroViewModel>();
-    if (viewModel.perros.isNotEmpty) {
-      _precacheVisibleImages(viewModel.perros);
-    }
+  // Widget shimmer placeholder para carga de imágenes más suave
+  Widget _buildShimmerPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.grey[200]!,
+            Colors.grey[100]!,
+            Colors.grey[200]!,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.pets,
+          size: 24,
+          color: Colors.grey[400],
+        ),
+      ),
+    );
   }
 }

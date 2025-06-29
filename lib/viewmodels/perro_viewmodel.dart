@@ -68,9 +68,9 @@ class PerroViewModel extends ChangeNotifier {
       // Generar nueva URL firmada
       final newUrl = await _perroRepository.getSignedImageUrl(fileName);
       
-      // Guardar en caché por 50 minutos (las URLs de Supabase duran 1 hora por defecto)
+      // Guardar en caché por 55 minutos (más tiempo para evitar regeneración frecuente)
       _urlCache[fileName] = newUrl;
-      _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 50));
+      _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 55));
       
       return newUrl;
     } catch (e) {
@@ -93,12 +93,13 @@ class PerroViewModel extends ChangeNotifier {
       _perros = nuevosPerros;
       notifyListeners(); // Notificación inmediata cuando se obtienen los datos
       
-      // Programar la carga de imágenes de forma asincrónica después del frame actual
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (!_disposed) {
-          loadAllImages();
-        }
-      });
+      // Pre-cargar todas las URLs de imágenes en el caché de forma más agresiva
+      await _preloadImageUrls(nuevosPerros);
+      
+      // Cargar imágenes inmediatamente en paralelo (sin delay)
+      if (!_disposed) {
+        loadAllImagesOptimized();
+      }
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -106,6 +107,60 @@ class PerroViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners(); // Notificación inmediata al finalizar
     }
+  }
+
+  /// Pre-carga URLs de imágenes para acceso inmediato
+  Future<void> _preloadImageUrls(List<PerroModel> perros) async {
+    if (_disposed) return;
+    
+    final futures = <Future<void>>[];
+    
+    for (final perro in perros) {
+      if (perro.fotoPerro != null && 
+          perro.fotoPerro!.isNotEmpty && 
+          !perro.fotoPerro!.startsWith('http')) {
+        
+        // Pre-cargar URL en paralelo solo si no está en caché o está expirada
+        if (!_isUrlCached(perro.fotoPerro!)) {
+          futures.add(_preloadSingleImageUrl(perro.fotoPerro!));
+        }
+      }
+    }
+    
+    // Ejecutar todas las pre-cargas en paralelo sin esperar
+    if (futures.isNotEmpty) {
+      Future.wait(futures).catchError((e) {
+        // Ignorar errores de pre-carga para no bloquear la UI
+        return <void>[];
+      });
+    }
+  }
+
+  /// Pre-carga una sola URL de imagen
+  Future<void> _preloadSingleImageUrl(String fileName) async {
+    try {
+      final url = await _perroRepository.getSignedImageUrl(fileName);
+      if (!_disposed) {
+        _urlCache[fileName] = url;
+        _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 55));
+      }
+    } catch (e) {
+      // Ignorar errores de pre-carga
+    }
+  }
+
+  /// Verifica si una URL está en caché y no está expirada
+  bool _isUrlCached(String fileName) {
+    if (!_urlCache.containsKey(fileName)) return false;
+    
+    final expiry = _urlCacheExpiry[fileName];
+    if (expiry == null || DateTime.now().isAfter(expiry)) {
+      _urlCache.remove(fileName);
+      _urlCacheExpiry.remove(fileName);
+      return false;
+    }
+    
+    return true;
   }
 
   /// Limpia del caché URLs de perros que ya no existen
@@ -187,11 +242,16 @@ class PerroViewModel extends ChangeNotifier {
         perro.fotoPerro!
       );
       
+      // Pre-cargar la URL firmada en caché para carga inmediata
+      final imageUrl = await _perroRepository.getSignedImageUrl(nombreArchivo);
+      _urlCache[nombreArchivo] = imageUrl;
+      _urlCacheExpiry[nombreArchivo] = DateTime.now().add(const Duration(minutes: 55));
+      
       // Crear el perro con el nombre del archivo
       final perroConImagen = perro.copyWith(fotoPerro: nombreArchivo);
       await _perroRepository.createPerro(perroConImagen);
       
-      // Recargar la lista
+      // Recargar la lista (las imágenes se cargarán más rápido por el pre-cache)
       await getAllPerros();
       return true;
     } on Exception catch (e) {
@@ -560,6 +620,197 @@ class PerroViewModel extends ChangeNotifier {
   /// Obtiene la URL firmada de una imagen de forma pública
   Future<String?> getImageUrl(String fileName) async {
     return await _getCachedImageUrl(fileName);
+  }
+
+  /// Carga optimizada de imágenes (más rápida y paralela)
+  Future<void> loadAllImagesOptimized() async {
+    if (_disposed) return;
+    
+    // No usar batch updating para permitir actualizaciones inmediatas
+    final futures = <Future<void>>[];
+    
+    for (int i = 0; i < _perros.length; i++) {
+      final perro = _perros[i];
+      
+      // Cargar todas las imágenes que necesiten carga
+      if (perro.fotoPerro != null && 
+          perro.fotoPerro!.isNotEmpty && 
+          !perro.fotoPerro!.startsWith('http') &&
+          !perro.isLoadingImage) {
+        
+        // Cargar cada imagen en paralelo con actualización inmediata
+        futures.add(_loadPerroImageOptimized(i));
+      }
+    }
+    
+    // Ejecutar todas las cargas en paralelo
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
+  }
+
+  /// Método optimizado para cargar imagen con actualización inmediata
+  Future<void> _loadPerroImageOptimized(int index) async {
+    if (index < 0 || index >= _perros.length || _disposed) return;
+
+    final perro = _perros[index];
+
+    // Si ya está cargando o ya tiene una URL válida, no hacer nada
+    if (perro.isLoadingImage ||
+        (perro.fotoPerro != null && perro.fotoPerro!.startsWith('http'))) {
+      return;
+    }
+
+    // Si no hay nombre de archivo de imagen válido, no hay nada que cargar
+    if (perro.fotoPerro == null || 
+        perro.fotoPerro!.isEmpty || 
+        !perro.fotoPerro!.contains('.') || 
+        perro.fotoPerro!.length < 5) {
+      return;
+    }
+
+    try {
+      // Marcar como cargando y notificar inmediatamente
+      _perros[index] = perro.copyWith(
+        isLoadingImage: true,
+        errorLoadingImage: null,
+      );
+      notifyListeners();
+
+      // Obtener la URL firmada desde caché (esto es rápido si está cacheado)
+      final imageUrl = await _getCachedImageUrl(perro.fotoPerro!);
+
+      if (imageUrl != null && !_disposed && index < _perros.length) {
+        // Actualizar el perro con la URL de la imagen y notificar inmediatamente
+        _perros[index] = perro.copyWith(
+          fotoPerro: imageUrl,
+          isLoadingImage: false,
+          errorLoadingImage: null,
+        );
+        notifyListeners(); // Actualización inmediata para mostrar la imagen
+      } else if (!_disposed && index < _perros.length) {
+        // No se pudo obtener la URL
+        _perros[index] = perro.copyWith(
+          isLoadingImage: false,
+          errorLoadingImage: 'No se pudo cargar la imagen',
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      if (!_disposed && index < _perros.length) {
+        // Manejar error
+        _perros[index] = perro.copyWith(
+          isLoadingImage: false,
+          errorLoadingImage: 'Error al cargar imagen',
+        );
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Pre-carga la imagen de un perro específico para edición rápida
+  Future<void> preloadPerroImageForEditing(String? fileName) async {
+    if (fileName == null || fileName.isEmpty || fileName.startsWith('http')) return;
+    
+    // Si ya está en caché y es válida, no hacer nada
+    if (_isUrlCached(fileName)) return;
+    
+    try {
+      // Pre-cargar la URL firmada
+      await _preloadSingleImageUrl(fileName);
+    } catch (e) {
+      // Ignorar errores de pre-carga
+    }
+  }
+
+  /// Inicialización optimizada para la primera carga
+  Future<void> initializeWithOptimizedImageLoading() async {
+    if (_disposed) return;
+    
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Obtener perros sin cargar imágenes todavía
+      final nuevosPerros = await _perroRepository.getAllPerros();
+      
+      // Limpiar caché de URLs de perros que ya no existen
+      _cleanupOrphanedCache(nuevosPerros);
+      
+      _perros = nuevosPerros;
+      notifyListeners(); // Mostrar la lista inmediatamente sin imágenes
+      
+      // Pre-cargar URLs en batch para los primeros 10 perros (pantalla visible + scroll inicial)
+      final priorityPerros = nuevosPerros.take(10).toList();
+      await _preloadImageUrls(priorityPerros);
+      
+      // Cargar imágenes prioritarias inmediatamente
+      await _loadPriorityImages(priorityPerros);
+      
+      // Cargar el resto de imágenes en segundo plano
+      if (nuevosPerros.length > 10) {
+        final remainingPerros = nuevosPerros.skip(10).toList();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!_disposed) {
+            _preloadImageUrls(remainingPerros);
+            _loadRemainingImages(remainingPerros, 10);
+          }
+        });
+      }
+      
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Carga imágenes prioritarias (primera pantalla)
+  Future<void> _loadPriorityImages(List<PerroModel> priorityPerros) async {
+    if (_disposed) return;
+    
+    final futures = <Future<void>>[];
+    
+    for (int i = 0; i < priorityPerros.length; i++) {
+      final perro = priorityPerros[i];
+      final globalIndex = _perros.indexWhere((p) => p.id == perro.id);
+      
+      if (globalIndex != -1 && perro.fotoPerro != null && 
+          perro.fotoPerro!.isNotEmpty && 
+          !perro.fotoPerro!.startsWith('http')) {
+        futures.add(_loadPerroImageOptimized(globalIndex));
+      }
+    }
+    
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
+  }
+
+  /// Carga imágenes restantes en segundo plano
+  Future<void> _loadRemainingImages(List<PerroModel> remainingPerros, int startIndex) async {
+    if (_disposed) return;
+    
+    for (int i = 0; i < remainingPerros.length; i++) {
+      if (_disposed) break;
+      
+      final perro = remainingPerros[i];
+      final globalIndex = _perros.indexWhere((p) => p.id == perro.id);
+      
+      if (globalIndex != -1 && perro.fotoPerro != null && 
+          perro.fotoPerro!.isNotEmpty && 
+          !perro.fotoPerro!.startsWith('http')) {
+        await _loadPerroImageOptimized(globalIndex);
+        
+        // Pequeña pausa para no bloquear la UI
+        if (i % 3 == 0) {
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+      }
+    }
   }
 
   @override

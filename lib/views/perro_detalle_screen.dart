@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/perro_model.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
+import '../core/cache_config.dart';
 import '../viewmodels/perro_viewmodel.dart';
 import '../widgets/adopcion_confirmation_dialog.dart';
 import 'editar_perro_screen.dart'; // Asegúrate de importar la pantalla de edición
@@ -262,15 +263,6 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
         // Forzar la recarga de la imagen si es necesario
         await _loadPerroImageIfNeeded();
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Información del perro actualizada exitosamente'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       } catch (e) {
         debugPrint('Error recargando datos después de editar: $e');
         setState(() {
@@ -476,30 +468,37 @@ class _PerroDetalleScreenState extends State<PerroDetalleScreen> {
                                       imageUrl: _perro.fotoPerro!,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: CircularProgressIndicator(
-                                            color: accentBlue,
+                                      cacheManager: CustomCacheManager.instance, // Usar cache optimizado para imagen completa
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey[100],
+                                        child: Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20.0),
+                                            child: CircularProgressIndicator(
+                                              color: accentBlue,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                      errorWidget: (context, url, error) => Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Column(
-                                            children: [
-                                              Icon(
-                                                Icons.broken_image,
-                                                color: grey500,
-                                                size: 48,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'No se pudo cargar la imagen',
-                                                style: TextStyle(color: grey600),
-                                              ),
-                                            ],
+                                      errorWidget: (context, url, error) => Container(
+                                        color: Colors.grey[100],
+                                        child: Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20.0),
+                                            child: Column(
+                                              children: [
+                                                Icon(
+                                                  Icons.broken_image,
+                                                  color: grey500,
+                                                  size: 48,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'No se pudo cargar la imagen',
+                                                  style: TextStyle(color: grey600),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
