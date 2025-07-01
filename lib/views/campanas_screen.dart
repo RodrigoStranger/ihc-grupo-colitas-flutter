@@ -59,11 +59,12 @@ class _CampanasScreenState extends State<CampanasScreen> {
         ),
         body: Consumer<FirmaViewModel>(
           builder: (context, viewModel, _) {
-            // Cargar las firmas solo una vez al inicio
+            // Cargar las firmas solo una vez al inicio con optimización
             if (!viewModel.isLoading && viewModel.firmas.isEmpty && !_initialLoadCompleted) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  viewModel.fetchFirmas().then((_) {
+                  // Usar el método optimizado para la primera carga
+                  viewModel.initializeWithOptimizedImageLoading().then((_) {
                     if (mounted) {
                       setState(() {
                         _initialLoadCompleted = true;
@@ -103,7 +104,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                     Text('Error: ${viewModel.error}'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: viewModel.fetchFirmas,
+                      onPressed: () => viewModel.initializeWithOptimizedImageLoading(),
                       child: const Text(botonReintentar),
                     ),
                   ],
@@ -129,7 +130,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
             }
             
             return RefreshIndicator(
-              onRefresh: viewModel.fetchFirmas,
+              onRefresh: () => viewModel.initializeWithOptimizedImageLoading(),
               color: accentBlue,
               backgroundColor: Colors.white,
               child: ListView.separated(
