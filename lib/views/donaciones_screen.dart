@@ -83,10 +83,6 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
               }).toList();
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => _showSearchDialog(context),
-          ),
         ],
       ),
       body: Column(
@@ -446,37 +442,5 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
         ),
       );
     }
-  }
-
-  void _showSearchDialog(BuildContext context) {
-    final viewModel = context.read<DonacionViewModel>();
-    final textController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Buscar solicitudes'),
-        content: TextField(
-          controller: textController,
-          decoration: const InputDecoration(hintText: 'Nombre o descripción'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              viewModel.fetchSolicitudes();
-            },
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              viewModel.buscarSolicitudes(textController.text);
-            },
-            child: const Text('Buscar'),
-          ),
-        ],
-      ),
-    );
   }
 }
