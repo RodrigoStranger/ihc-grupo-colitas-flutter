@@ -211,7 +211,7 @@ class SolicitudAdopcionRepository {
         throw SolicitudAdopcionException('Usuario no autenticado');
       }
 
-      // Actualizar el estado de la solicitud a "Aceptado"
+      // Actualizar el estado de la solicitud aceptada a "Aceptado"
       await _supabase
           .from('SolicitudesAdopcion')
           .update({'EstadoSolicitanteAdopcion': 'Aceptado'})
@@ -222,6 +222,14 @@ class SolicitudAdopcionRepository {
           .from('Perros')
           .update({'EstadoPerro': 'Adoptado'})
           .eq('IdPerro', int.parse(perroId));
+
+      // Rechazar automáticamente todas las demás solicitudes pendientes del mismo perro
+      await _supabase
+          .from('SolicitudesAdopcion')
+          .update({'EstadoSolicitanteAdopcion': 'Rechazado'})
+          .eq('IdPerro', int.parse(perroId))
+          .neq('IdSolicitanteAdopcion', int.parse(solicitudId))
+          .eq('EstadoSolicitanteAdopcion', 'Pendiente');
 
       return true;
     } catch (e) {

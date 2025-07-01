@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/solicitud_adopcion_viewmodel.dart';
@@ -60,32 +61,119 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(seleccionarTelefono),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.phone,
+              color: accentBlue,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              seleccionarTelefono,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.phone, color: accentBlue),
-              title: Text('Teléfono 1: $numero1'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirWhatsApp(numero1, solicitud.nombreSolicitante);
-              },
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.phone, color: accentBlue, size: 20),
+                ),
+                title: Text(
+                  'Teléfono 1',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                subtitle: Text(
+                  numero1,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _abrirWhatsApp(numero1, solicitud.nombreSolicitante);
+                },
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.phone, color: accentBlue),
-              title: Text('Teléfono 2: $numero2'),
-              onTap: () {
-                Navigator.pop(context);
-                _abrirWhatsApp(numero2, solicitud.nombreSolicitante);
-              },
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.phone, color: accentBlue, size: 20),
+                ),
+                title: Text(
+                  'Teléfono 2',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                subtitle: Text(
+                  numero2,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _abrirWhatsApp(numero2, solicitud.nombreSolicitante);
+                },
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(botonCancelar),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              botonCancelar,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -268,6 +356,17 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
         return Colors.red;
       default:
         return Colors.orange;
+    }
+  }
+
+  String _formatearFecha(String fecha) {
+    try {
+      final DateTime dateTime = DateTime.parse(fecha);
+      final DateFormat formatter = DateFormat('yyyy-MM-dd');
+      return formatter.format(dateTime);
+    } catch (e) {
+      // Si hay error al parsear la fecha, devolver la fecha original
+      return fecha;
     }
   }
 
@@ -620,7 +719,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                         ],
                         const SizedBox(height: 8),
                         Text(
-                          '$solicitudFechaLabel${solicitud.fechaSolicitante}',
+                          '$solicitudFechaLabel${_formatearFecha(solicitud.fechaSolicitante)}',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: grey600,
                           ),

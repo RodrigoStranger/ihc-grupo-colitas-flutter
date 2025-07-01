@@ -461,19 +461,28 @@ class SolicitudAdopcionViewModel extends ChangeNotifier {
       final success = await _repository.aceptarSolicitud(solicitudId, perroId);
       
       if (success && !_isDisposed) {
-        // Actualizar el estado local de la solicitud
-        final index = _solicitudes.indexWhere((s) => s.id == solicitudId);
-        if (index != -1) {
-          _solicitudes[index] = _solicitudes[index].copyWith(
-            estadoSolicitante: 'Aceptado',
-          );
+        // Actualizar el estado local de todas las solicitudes del mismo perro
+        for (int i = 0; i < _solicitudes.length; i++) {
+          if (_solicitudes[i].idPerro == perroId) {
+            if (_solicitudes[i].id == solicitudId) {
+              // Marcar la solicitud aceptada como "Aceptado"
+              _solicitudes[i] = _solicitudes[i].copyWith(
+                estadoSolicitante: 'Aceptado',
+              );
+            } else if (_solicitudes[i].estadoSolicitante.toLowerCase() == 'pendiente') {
+              // Marcar las demás solicitudes pendientes como "Rechazado"
+              _solicitudes[i] = _solicitudes[i].copyWith(
+                estadoSolicitante: 'Rechazado',
+              );
+            }
+          }
         }
         
-        _processingMessage = 'Solicitud aceptada exitosamente';
+        _processingMessage = 'Solicitud aceptada exitosamente. Otras solicitudes del mismo perro fueron rechazadas automáticamente.';
         _safeNotifyListeners();
         
         // Limpiar mensaje después de un tiempo
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(seconds: 3), () {
           if (!_isDisposed) {
             _processingMessage = null;
             _safeNotifyListeners();
