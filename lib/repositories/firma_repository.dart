@@ -12,17 +12,19 @@ class StorageException implements Exception {
 
 class FirmaRepository {
   final SupabaseClient _supabase = SupabaseConfig.client;
-  final Map<String, String> _urlCache = {};
   
-  // Tiempo de expiración de la caché (1 hora en segundos)
-  static const int _cacheExpiration = 3600;
+  // Cache de URLs firmadas para evitar regenerarlas constantemente
+  final Map<String, String> _urlCache = {};
+  final Map<String, DateTime> _urlCacheExpiry = {};
+  
+  // Tiempo de expiración de la caché (55 minutos para ser consistente con perros)
+  static const int _cacheExpiration = 3300; // 55 minutos en segundos
   Timer? _cacheCleanupTimer;
-  final Map<String, DateTime> _urlCacheTimestamps = {};
 
   FirmaRepository() {
-    // Limpiar caché cada 5 minutos
+    // Limpiar caché cada 10 minutos
     _cacheCleanupTimer = Timer.periodic(
-      const Duration(minutes: 5), 
+      const Duration(minutes: 10), 
       (_) => _cleanupExpiredCache()
     );
   }
@@ -33,8 +35,8 @@ class FirmaRepository {
 
   void _cleanupExpiredCache() {
     final now = DateTime.now();
-    _urlCacheTimestamps.removeWhere((key, timestamp) {
-      if (now.difference(timestamp).inSeconds > _cacheExpiration) {
+    _urlCacheExpiry.removeWhere((key, expiry) {
+      if (now.isAfter(expiry)) {
         _urlCache.remove(key);
         return true;
       }
@@ -42,51 +44,10 @@ class FirmaRepository {
     });
   }
 
-  // Obtener URLs firmadas en lote
-  Future<Map<String, String>> _getSignedUrls(List<String> fileNames) async {
-    final Map<String, String> result = {};
-    final List<String> filesToFetch = [];
-    final now = DateTime.now();
 
-    // Filtrar archivos que ya están en caché y no han expirado
-    for (final fileName in fileNames) {
-      final cacheKey = fileName.contains('/') ? fileName.split('/').last : fileName;
-      if (_urlCache.containsKey(cacheKey) && 
-          _urlCacheTimestamps[cacheKey] != null &&
-          now.difference(_urlCacheTimestamps[cacheKey]!).inSeconds < _cacheExpiration) {
-        result[fileName] = _urlCache[cacheKey]!;
-      } else {
-        filesToFetch.add(cacheKey);
-      }
-    }
 
-    // Obtener URLs firmadas en paralelo
-    if (filesToFetch.isNotEmpty) {
-      final urls = await Future.wait(
-        filesToFetch.map((file) => getSignedImageUrl(file))
-      );
-
-      // Actualizar caché
-      for (int i = 0; i < filesToFetch.length; i++) {
-        final cacheKey = filesToFetch[i];
-        final url = urls[i];
-        _urlCache[cacheKey] = url;
-        _urlCacheTimestamps[cacheKey] = now;
-        
-        // Asignar URL al archivo original que podría tener ruta completa
-        final originalFileName = fileNames.firstWhere(
-          (f) => f.contains(cacheKey),
-          orElse: () => cacheKey
-        );
-        result[originalFileName] = url;
-      }
-    }
-
-    return result;
-  }
-
-  // Obtener URL firmada para un solo archivo
-  Future<String> getSignedImageUrl(String fileName) async {
+  // Obtener URL firmada directamente desde Supabase (sin cache)
+  Future<String> _getSignedImageUrlDirect(String fileName) async {
     if (fileName.contains('/')) {
       fileName = fileName.split('/').last;
     }
@@ -96,7 +57,32 @@ class FirmaRepository {
         .createSignedUrl(fileName, _cacheExpiration);
   }
 
-  // Obtener firmas con paginación
+  // Obtener URL firmada para un solo archivo (con cache)
+  Future<String> getSignedImageUrl(String fileName) async {
+    final cacheKey = fileName.contains('/') ? fileName.split('/').last : fileName;
+    
+    // Verificar si está en caché y no ha expirado
+    if (_urlCache.containsKey(cacheKey) && 
+        _urlCacheExpiry[cacheKey] != null &&
+        DateTime.now().isBefore(_urlCacheExpiry[cacheKey]!)) {
+      return _urlCache[cacheKey]!;
+    }
+    
+    // Limpiar entrada expirada
+    _urlCache.remove(cacheKey);
+    _urlCacheExpiry.remove(cacheKey);
+    
+    // Obtener nueva URL
+    final url = await _getSignedImageUrlDirect(cacheKey);
+    
+    // Guardar en caché
+    _urlCache[cacheKey] = url;
+    _urlCacheExpiry[cacheKey] = DateTime.now().add(Duration(seconds: _cacheExpiration));
+    
+    return url;
+  }
+
+  // Obtener firmas con paginación y carga optimizada de imágenes
   Future<List<FirmaModel>> getFirmas({int page = 0, int pageSize = 20}) async {
     try {
       // Verificar autenticación
@@ -116,27 +102,16 @@ class FirmaRepository {
           .map((item) => FirmaModel.fromMap(item as Map<String, dynamic>))
           .toList();
 
-      // Filtrar firmas con imagen
+      // Solo pre-cargar URLs en paralelo sin bloquear la respuesta (optimización)
       final firmasConImagen = firmas
           .where((f) => f.imagenFirma != null && f.imagenFirma!.isNotEmpty)
           .toList();
           
-      // Obtener URLs firmadas en lote
       if (firmasConImagen.isNotEmpty) {
-        final imageUrls = await _getSignedUrls(
-          firmasConImagen.map((f) => f.imagenFirma!).toList()
-        );
+        final imageFileNames = firmasConImagen.map((f) => f.imagenFirma!).toList();
         
-        // Actualizar firmas con las URLs
-        for (int i = 0; i < firmas.length; i++) {
-          final firma = firmas[i];
-          if (firma.imagenFirma != null && firma.imagenFirma!.isNotEmpty) {
-            final url = imageUrls[firma.imagenFirma!];
-            if (url != null) {
-              firmas[i] = firma.copyWith(imagenFirma: url);
-            }
-          }
-        }
+        // Pre-cargar URLs en paralelo sin esperar (no bloquear)
+        preloadImageUrls(imageFileNames);
       }
       
       return firmas;
@@ -152,5 +127,56 @@ class FirmaRepository {
     } catch (_) {
       // Ignorar errores en precarga
     }
+  }
+
+  // Pre-cargar URLs de imágenes para acceso inmediato (optimizado para no bloquear)
+  Future<void> preloadImageUrls(List<String> fileNames) async {
+    if (fileNames.isEmpty) return;
+    
+    final List<String> filesToPreload = [];
+    final now = DateTime.now();
+    
+    for (final fileName in fileNames) {
+      final cacheKey = fileName.contains('/') ? fileName.split('/').last : fileName;
+      
+      // Solo pre-cargar si no está en caché o está expirado
+      if (!_urlCache.containsKey(cacheKey) || 
+          _urlCacheExpiry[cacheKey] == null ||
+          now.isAfter(_urlCacheExpiry[cacheKey]!)) {
+        filesToPreload.add(cacheKey);
+      }
+    }
+    
+    if (filesToPreload.isNotEmpty) {
+      // Pre-cargar en paralelo sin esperar y sin bloquear el hilo principal
+      Future.microtask(() async {
+        try {
+          await Future.wait(filesToPreload.map((fileName) async {
+            try {
+              await getSignedImageUrl(fileName);
+            } catch (e) {
+              // Ignorar errores de pre-carga individual
+            }
+          }));
+        } catch (e) {
+          // Ignorar errores de pre-carga para no bloquear la UI
+        }
+      });
+    }
+  }
+
+  // Limpiar caché de una imagen específica
+  void invalidateImageCache(String? fileName) {
+    if (fileName == null || fileName.isEmpty) return;
+    
+    final cacheKey = fileName.contains('/') ? fileName.split('/').last : fileName;
+    _urlCache.remove(cacheKey);
+    _urlCacheExpiry.remove(cacheKey);
+  }
+
+  // Limpiar todo el caché
+  void clearImageCache() {
+    _urlCache.clear();
+    _urlCacheExpiry.clear();
   }
 }

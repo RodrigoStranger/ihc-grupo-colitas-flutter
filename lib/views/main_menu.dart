@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../widgets/menu_option_card.dart';
+import 'solicitudes_adopcion_screen.dart'; // Importar la pantalla de solicitudes de adopción
 import 'campanas_screen.dart';
 import 'donaciones_screen.dart';
 import 'perros_screen.dart';
@@ -102,7 +103,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onAdopcionesTap() {
-    // TODO: Implementar navegación o acción para adopciones
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SolicitudesAdopcionScreen()),
+    );
   }
 
   void _onCampanasTap() {

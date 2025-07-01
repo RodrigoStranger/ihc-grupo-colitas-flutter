@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import 'repositories/auth_repository.dart';
 import 'viewmodels/donacion_viewmodel.dart';
+import 'viewmodels/firma_viewmodel.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/perro_viewmodel.dart';
+import 'viewmodels/solicitud_adopcion_viewmodel.dart';
 import 'views/agregar_perro_screen.dart';
 import 'views/donaciones_screen.dart';
 import 'views/login.dart';
@@ -33,6 +35,16 @@ class MyApp extends StatelessWidget {
         // AÑADE ESTE NUEVO PROVIDER
         ChangeNotifierProvider<DonacionViewModel>(
           create: (context) => DonacionViewModel(),
+        ),
+
+        // ViewModel de firmas
+        ChangeNotifierProvider<FirmaViewModel>(
+          create: (context) => FirmaViewModel(),
+        ),
+
+        // ViewModel de solicitudes de adopción
+        ChangeNotifierProvider<SolicitudAdopcionViewModel>(
+          create: (context) => SolicitudAdopcionViewModel(),
         ),
       ],
       child: MaterialApp(
