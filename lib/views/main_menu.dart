@@ -4,8 +4,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../widgets/menu_option_card.dart';
-import 'campanas_screen.dart'; // Asegúrate de importar la pantalla de campañas
-import 'perros_screen.dart'; // Importar la pantalla de perros
+import 'campanas_screen.dart';
+import 'donaciones_screen.dart';
+import 'perros_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -93,7 +94,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onDonacionesTap() {
-    // TODO: Implementar navegación o acción para donaciones
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const DonacionesScreen(),
+      ), // <--- NAVIGATE TO DonacionesScreen
+    );
   }
 
   void _onAdopcionesTap() {
@@ -101,15 +106,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onCampanasTap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const CampanasScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CampanasScreen()));
   }
 
   void _onAnimalesTap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PerrosScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PerrosScreen()));
   }
 
   Widget _buildFooter(String version) {

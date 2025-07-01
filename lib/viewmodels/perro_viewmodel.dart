@@ -5,43 +5,73 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/perro_model.dart';
 import '../repositories/perro_repository.dart';
 
+/// ViewModel principal para la gestión de perros en el refugio
+/// 
+/// Esta clase implementa el patrón MVVM y se encarga de:
+/// - Mantener el estado global de la lista de perros
+/// - Gestionar operaciones CRUD (Crear, Leer, Actualizar, Eliminar)
+/// - Optimizar la carga de imágenes con cache inteligente
+/// - Manejar estados de loading, error y datos
+/// - Proporcionar métodos reactivos para la UI
+/// 
+/// Características técnicas:
+/// - Cache de URLs firmadas con expiración automática
+/// - Carga optimizada de imágenes (lazy loading + precarga)
+/// - Operaciones batch para mejor rendimiento
+/// - Manejo seguro de estados asíncronos
+/// - Prevención de memory leaks con flag de disposed
 class PerroViewModel extends ChangeNotifier {
+  // Repositorio para operaciones de datos con Supabase
   final PerroRepository _perroRepository = PerroRepository();
 
-  List<PerroModel> _perros = [];
-  bool _isLoading = false;
-  String? _error;
+  // Estado principal de la aplicación
+  List<PerroModel> _perros = [];        // Lista de perros cargados
+  bool _isLoading = false;              // Indicador de carga general
+  String? _error;                       // Mensaje de error actual
 
+  // Getters públicos para acceso controlado al estado
   List<PerroModel> get perros => _perros;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String? get errorMessage => _error;
+  String? get errorMessage => _error;   // Alias para compatibilidad
 
+  // === SISTEMA DE GESTIÓN DE IMÁGENES ===
   // Mapa para rastrear las operaciones de carga de imágenes en curso
+  // Evita cargas duplicadas de la misma imagen
   final Map<int, Future<void>> _imageLoadingOperations = {};
   
   // Cache de URLs firmadas para evitar regenerarlas constantemente
+  // Las URLs de Supabase Storage expiran, por lo que necesitamos renovarlas
   final Map<String, String> _urlCache = {};
   final Map<String, DateTime> _urlCacheExpiry = {};
   
+  // === SISTEMA DE NOTIFICACIONES OPTIMIZADO ===
   // Flag para evitar múltiples notificaciones durante actualizaciones batch
+  // Mejora el rendimiento cuando se actualizan muchos elementos a la vez
   bool _isBatchUpdating = false;
   
   // Flag para indicar si se necesita una notificación pendiente
   bool _needsNotification = false;
   
   // Flag para verificar si el ViewModel ha sido destruido
+  // Previene memory leaks y errores al intentar notificar después del dispose
   bool _disposed = false;
 
   /// Notifica cambios de forma segura, evitando setState durante build
+  /// 
+  /// Este método previene errores comunes de Flutter cuando se intenta
+  /// actualizar el estado durante la construcción de widgets
   void _safeNotifyListeners() {
-    if (_disposed) return; // No hacer nada si está destruido
+    // No hacer nada si el ViewModel ha sido destruido
+    if (_disposed) return; 
     
+    // Si estamos en modo batch, marcar que necesitamos notificar después
     if (_isBatchUpdating) {
       _needsNotification = true;
       return;
     }
     
+    // Programar la notificación para después del frame actual
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_disposed && (_needsNotification || !_isBatchUpdating)) {
         _needsNotification = false;
