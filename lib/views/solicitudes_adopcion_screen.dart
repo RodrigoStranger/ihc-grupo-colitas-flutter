@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/colors.dart';
@@ -92,46 +93,112 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
   }
 
   Future<void> _abrirWhatsApp(String telefono, String nombre) async {
-    // Limpiar el número: quitar espacios, guiones, paréntesis
-    String numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
-    
-    // Si no empieza con +, agregar código de país de Perú
-    if (!numeroLimpio.startsWith('+')) {
-      if (numeroLimpio.startsWith('9')) {
-        numeroLimpio = '+51$numeroLimpio';
-      } else if (numeroLimpio.length == 9) {
-        numeroLimpio = '+51$numeroLimpio';
-      } else {
-        numeroLimpio = '+51$numeroLimpio';
-      }
-    }
-    
-    final mensaje = Uri.encodeComponent(
-      'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de adopción.'
-    );
-    final url = 'https://wa.me/$numeroLimpio?text=$mensaje';
-    
     try {
-      if (await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('No se pudo abrir WhatsApp para el número: $numeroLimpio'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+      // Limpiar el número: quitar espacios, guiones, paréntesis
+      String numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
+      
+      // Si no empieza con +, agregar código de país de Perú
+      if (!numeroLimpio.startsWith('+')) {
+        if (numeroLimpio.startsWith('9') && numeroLimpio.length == 9) {
+          numeroLimpio = '+51$numeroLimpio';
+        } else if (numeroLimpio.length == 9) {
+          numeroLimpio = '+51$numeroLimpio';
+        } else if (numeroLimpio.length == 8) {
+          numeroLimpio = '+519$numeroLimpio';
+        } else {
+          numeroLimpio = '+51$numeroLimpio';
         }
       }
+      
+      final mensaje = Uri.encodeComponent(
+        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de adopción.'
+      );
+      
+      // SIEMPRE usar el número CON +51 para wa.me
+      // Solo quitar el + para esquemas nativos como whatsapp://
+      
+      // Intentar método directo primero CON +51
+      final urlDirecta = 'https://wa.me/$numeroLimpio?text=$mensaje';
+      
+      try {
+        final uri = Uri.parse(urlDirecta);
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (launched) {
+          return;
+        }
+      } catch (e) {
+        // Continuar con el siguiente método
+      }
+      
+      // Si falla, intentar con esquema nativo SIN +
+      final numeroSinMas = numeroLimpio.replaceAll('+', '');
+      final urlNativa = 'whatsapp://send?phone=$numeroSinMas&text=$mensaje';
+      
+      try {
+        final uri = Uri.parse(urlNativa);
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (launched) {
+          return;
+        }
+      } catch (e) {
+        // Continuar con el siguiente método
+      }
+      
+      // Último intento: usar launchUrl con diferentes modos CON +51
+      final urlFinal = 'https://wa.me/$numeroLimpio?text=$mensaje';
+      
+      // Intentar con diferentes modos de lanzamiento
+      final modes = [
+        LaunchMode.externalApplication,
+        LaunchMode.platformDefault,
+        LaunchMode.externalNonBrowserApplication,
+      ];
+      
+      for (final mode in modes) {
+        try {
+          final uri = Uri.parse(urlFinal);
+          final launched = await launchUrl(uri, mode: mode);
+          
+          if (launched) {
+            return;
+          }
+        } catch (e) {
+          // Continuar con el siguiente modo
+        }
+      }
+      
+      throw 'No se pudo abrir WhatsApp. Número: $numeroLimpio';
+      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al contactar: ${e.toString()}'),
+            content: Text('Error al contactar por WhatsApp: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Copiar número',
+              textColor: Colors.white,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: telefono));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Número copiado al portapapeles'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
           ),
         );
       }
