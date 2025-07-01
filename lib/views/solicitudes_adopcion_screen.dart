@@ -94,7 +94,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: accentBlue.withOpacity(0.1),
+                    color: accentBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.phone, color: accentBlue, size: 20),
@@ -130,7 +130,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: accentBlue.withOpacity(0.1),
+                    color: accentBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.phone, color: accentBlue, size: 20),
