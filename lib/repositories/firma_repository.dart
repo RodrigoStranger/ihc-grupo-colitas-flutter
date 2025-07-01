@@ -44,51 +44,7 @@ class FirmaRepository {
     });
   }
 
-  // Obtener URLs firmadas en lote con cache optimizado
-  Future<Map<String, String>> _getSignedUrls(List<String> fileNames) async {
-    final Map<String, String> result = {};
-    final List<String> filesToFetch = [];
-    final now = DateTime.now();
 
-    // Filtrar archivos que ya están en caché y no han expirado
-    for (final fileName in fileNames) {
-      final cacheKey = fileName.contains('/') ? fileName.split('/').last : fileName;
-      if (_urlCache.containsKey(cacheKey) && 
-          _urlCacheExpiry[cacheKey] != null &&
-          now.isBefore(_urlCacheExpiry[cacheKey]!)) {
-        result[fileName] = _urlCache[cacheKey]!;
-      } else {
-        // Limpiar entrada expirada
-        _urlCache.remove(cacheKey);
-        _urlCacheExpiry.remove(cacheKey);
-        filesToFetch.add(cacheKey);
-      }
-    }
-
-    // Obtener URLs firmadas en paralelo para archivos no cacheados
-    if (filesToFetch.isNotEmpty) {
-      final urls = await Future.wait(
-        filesToFetch.map((file) => _getSignedImageUrlDirect(file))
-      );
-
-      // Actualizar caché con nuevas URLs
-      for (int i = 0; i < filesToFetch.length; i++) {
-        final cacheKey = filesToFetch[i];
-        final url = urls[i];
-        _urlCache[cacheKey] = url;
-        _urlCacheExpiry[cacheKey] = now.add(Duration(seconds: _cacheExpiration));
-        
-        // Asignar URL al archivo original que podría tener ruta completa
-        final originalFileName = fileNames.firstWhere(
-          (f) => f.contains(cacheKey),
-          orElse: () => cacheKey
-        );
-        result[originalFileName] = url;
-      }
-    }
-
-    return result;
-  }
 
   // Obtener URL firmada directamente desde Supabase (sin cache)
   Future<String> _getSignedImageUrlDirect(String fileName) async {
@@ -146,31 +102,16 @@ class FirmaRepository {
           .map((item) => FirmaModel.fromMap(item as Map<String, dynamic>))
           .toList();
 
-      // Filtrar firmas con imagen
+      // Solo pre-cargar URLs en paralelo sin bloquear la respuesta (optimización)
       final firmasConImagen = firmas
           .where((f) => f.imagenFirma != null && f.imagenFirma!.isNotEmpty)
           .toList();
           
-      // Pre-cargar URLs en paralelo para acceso inmediato
       if (firmasConImagen.isNotEmpty) {
         final imageFileNames = firmasConImagen.map((f) => f.imagenFirma!).toList();
         
-        // Pre-cargar todas las URLs en paralelo
+        // Pre-cargar URLs en paralelo sin esperar (no bloquear)
         preloadImageUrls(imageFileNames);
-        
-        // Obtener URLs firmadas en lote (desde caché si están disponibles)
-        final imageUrls = await _getSignedUrls(imageFileNames);
-        
-        // Actualizar firmas con las URLs
-        for (int i = 0; i < firmas.length; i++) {
-          final firma = firmas[i];
-          if (firma.imagenFirma != null && firma.imagenFirma!.isNotEmpty) {
-            final url = imageUrls[firma.imagenFirma!];
-            if (url != null) {
-              firmas[i] = firma.copyWith(imagenFirma: url);
-            }
-          }
-        }
       }
       
       return firmas;
@@ -188,7 +129,7 @@ class FirmaRepository {
     }
   }
 
-  // Pre-cargar URLs de imágenes para acceso inmediato
+  // Pre-cargar URLs de imágenes para acceso inmediato (optimizado para no bloquear)
   Future<void> preloadImageUrls(List<String> fileNames) async {
     if (fileNames.isEmpty) return;
     
@@ -207,21 +148,20 @@ class FirmaRepository {
     }
     
     if (filesToPreload.isNotEmpty) {
-      try {
-        // Pre-cargar en paralelo sin esperar
-        Future.wait(filesToPreload.map((fileName) async {
-          try {
-            await getSignedImageUrl(fileName);
-          } catch (e) {
-            // Ignorar errores de pre-carga individual
-          }
-        })).catchError((e) {
+      // Pre-cargar en paralelo sin esperar y sin bloquear el hilo principal
+      Future.microtask(() async {
+        try {
+          await Future.wait(filesToPreload.map((fileName) async {
+            try {
+              await getSignedImageUrl(fileName);
+            } catch (e) {
+              // Ignorar errores de pre-carga individual
+            }
+          }));
+        } catch (e) {
           // Ignorar errores de pre-carga para no bloquear la UI
-          return <Null>[];
-        });
-      } catch (e) {
-        // Ignorar errores de pre-carga
-      }
+        }
+      });
     }
   }
 

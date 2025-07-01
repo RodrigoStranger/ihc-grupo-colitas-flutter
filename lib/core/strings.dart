@@ -152,3 +152,12 @@ const String tituloConfirmacion = 'Confirmar acción';
 // WhatsApp
 const String abrirWhatsApp = 'Abrir WhatsApp';
 const String seleccionarTelefono = 'Seleccionar teléfono';
+
+// Filtros de solicitudes
+const String filtroTodos = 'Todos';
+const String filtroPendiente = 'Pendiente';
+const String filtroAceptado = 'Aceptado';
+const String filtroRechazado = 'Rechazado';
+const String filtrandoLabel = 'Filtrando: ';
+const String cambiarFiltroHint = 'Intenta cambiar el filtro';
+const String noHaySolicitudesFiltro = 'No hay solicitudes';

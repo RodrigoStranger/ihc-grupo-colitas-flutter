@@ -5,6 +5,7 @@ import '../core/colors.dart';
 import '../core/strings.dart';
 import '../viewmodels/solicitud_adopcion_viewmodel.dart';
 import '../models/solicitud_adopcion_model.dart';
+import '../widgets/base_confirmation_dialog.dart';
 
 class SolicitudesAdopcionScreen extends StatefulWidget {
   const SolicitudesAdopcionScreen({super.key});
@@ -17,6 +18,8 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _initialLoadCompleted = false;
   SolicitudAdopcionViewModel? _viewModel;
+  String _filtroEstado = 'Todos'; // Filtro seleccionado
+  final List<String> _opcionesFiltro = ['Todos', 'Pendiente', 'Aceptado', 'Rechazado'];
   
   @override
   void initState() {
@@ -137,26 +140,14 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
 
   // Confirmar aceptar solicitud
   Future<void> _confirmarAceptarSolicitud(SolicitudAdopcionModel solicitud) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(tituloConfirmacion),
-        content: Text(confirmarAceptarSolicitud),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(botonCancelar),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(botonAceptar),
-          ),
-        ],
-      ),
+    final confirm = await BaseConfirmationDialog.show(
+      context,
+      title: 'Aceptar Solicitud',
+      titleIcon: Icons.check_circle,
+      message: '¿Estás seguro de que quieres aceptar la solicitud de adopción de ${solicitud.nombreSolicitante} para el perro ${solicitud.nombrePerro ?? 'sin nombre'}?',
+      warningMessage: 'Esta acción marcará al perro como adoptado y cambiará el estado de la solicitud.',
+      confirmText: 'Aceptar Solicitud',
+      confirmColor: Colors.green,
     );
 
     if (confirm == true && mounted) {
@@ -176,26 +167,15 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
 
   // Confirmar rechazar solicitud
   Future<void> _confirmarRechazarSolicitud(SolicitudAdopcionModel solicitud) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(tituloConfirmacion),
-        content: Text(confirmarRechazarSolicitud),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(botonCancelar),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(botonRechazarSolicitud),
-          ),
-        ],
-      ),
+    final confirm = await BaseConfirmationDialog.show(
+      context,
+      title: 'Rechazar Solicitud',
+      titleIcon: Icons.cancel,
+      message: '¿Estás seguro de que quieres rechazar la solicitud de adopción de ${solicitud.nombreSolicitante} para el perro ${solicitud.nombrePerro ?? 'sin nombre'}?',
+      warningMessage: 'Esta acción cambiará el estado de la solicitud a rechazado.',
+      confirmText: 'Rechazar Solicitud',
+      confirmColor: Colors.red,
+      cancelColor: accentBlue,
     );
 
     if (confirm == true && mounted) {
@@ -239,8 +219,76 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
         ),
         backgroundColor: accentBlue,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list, color: Colors.white),
+            onSelected: (String value) {
+              setState(() {
+                _filtroEstado = value;
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return _opcionesFiltro.map((String opcion) {
+                return PopupMenuItem<String>(
+                  value: opcion,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _filtroEstado == opcion ? Icons.check : Icons.circle_outlined,
+                        color: _filtroEstado == opcion ? accentBlue : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(opcion),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ],
       ),
-      body: Consumer<SolicitudAdopcionViewModel>(
+      body: Column(
+        children: [
+          // Chip indicador del filtro activo
+          if (_filtroEstado != 'Todos')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 16,
+                    color: accentBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$filtrandoLabel$_filtroEstado',
+                    style: TextStyle(
+                      color: accentBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _filtroEstado = 'Todos';
+                      });
+                    },
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: accentBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Lista de solicitudes
+          Expanded(
+            child: Consumer<SolicitudAdopcionViewModel>(
         builder: (context, viewModel, _) {
             // Asignar el viewModel para uso en _onScroll
             _viewModel = viewModel;
@@ -320,7 +368,50 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
               );
             }
             
-            final solicitudes = viewModel.solicitudes;
+            final todasLasSolicitudes = viewModel.solicitudes;
+            final solicitudes = _filtrarSolicitudes(todasLasSolicitudes);
+            
+            if (todasLasSolicitudes.isNotEmpty && solicitudes.isEmpty) {
+              return RefreshIndicator(
+                onRefresh: () => viewModel.refresh(),
+                color: accentBlue,
+                backgroundColor: Colors.white,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.4),
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '$noHaySolicitudesFiltro $_filtroEstado'.toLowerCase(),
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            cambiarFiltroHint,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
             
             if (solicitudes.isEmpty) {
               return RefreshIndicator(
@@ -680,7 +771,10 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
             );
           },
         ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPerroImage(SolicitudAdopcionModel solicitud) {
@@ -745,5 +839,14 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
       size: 40,
       color: blue500,
     );
+  }
+
+  // Función para filtrar solicitudes por estado
+  List<SolicitudAdopcionModel> _filtrarSolicitudes(List<SolicitudAdopcionModel> solicitudes) {
+    if (_filtroEstado == 'Todos') {
+      return solicitudes;
+    }
+    return solicitudes.where((solicitud) => 
+      solicitud.estadoSolicitante.toLowerCase() == _filtroEstado.toLowerCase()).toList();
   }
 }

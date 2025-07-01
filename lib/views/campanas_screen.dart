@@ -128,7 +128,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
             }
             
             return RefreshIndicator(
-              onRefresh: () => viewModel.initializeWithOptimizedImageLoading(),
+              onRefresh: () => viewModel.refresh(),
               color: accentBlue,
               backgroundColor: Colors.white,
               child: ListView.separated(

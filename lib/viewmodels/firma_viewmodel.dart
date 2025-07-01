@@ -12,7 +12,7 @@ class FirmaViewModel extends ChangeNotifier {
   
   // Estado de paginación
   int _currentPage = 0;
-  static const int _pageSize = 15;
+  static const int _pageSize = 12; // Reducido para cargas más rápidas
   bool _hasMore = true;
   bool get hasMore => _hasMore;
   
@@ -266,21 +266,21 @@ class FirmaViewModel extends ChangeNotifier {
       notifyListeners(); // Mostrar la lista inmediatamente
       
       // Cargar imágenes prioritarias inmediatamente
-      await _loadPriorityImages(newFirmas.take(8).toList());
+      await _loadPriorityImages(newFirmas.take(6).toList());
       
-      // Cargar el resto de imágenes en segundo plano
-      if (newFirmas.length > 8) {
-        final remainingFirmas = newFirmas.skip(8).toList();
-        Future.delayed(const Duration(milliseconds: 300), () {
+      // Cargar el resto de imágenes en segundo plano con menor delay
+      if (newFirmas.length > 6) {
+        final remainingFirmas = newFirmas.skip(6).toList();
+        Future.delayed(const Duration(milliseconds: 100), () {
           if (!_isDisposed) {
-            _loadRemainingImages(remainingFirmas, 8);
+            _loadRemainingImages(remainingFirmas, 6);
           }
         });
       }
       
-      // Precargar la siguiente página en segundo plano
+      // Precargar la siguiente página en segundo plano con menor delay
       if (_hasMore) {
-        Future.delayed(const Duration(seconds: 1), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (!_isDisposed) {
             _preloadNextPage();
           }
@@ -298,6 +298,11 @@ class FirmaViewModel extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  /// Método de refresh para el RefreshIndicator
+  Future<void> refresh() async {
+    await initializeWithOptimizedImageLoading();
   }
 
   /// Carga imágenes prioritarias (primera pantalla)
@@ -341,9 +346,9 @@ class FirmaViewModel extends ChangeNotifier {
           !firma.imagenFirma!.startsWith('http')) {
         await _loadFirmaImageOptimized(globalIndex);
         
-        // Pequeña pausa para no bloquear la UI
-        if (i % 3 == 0) {
-          await Future.delayed(const Duration(milliseconds: 50));
+        // Pausa más pequeña para no bloquear la UI
+        if (i % 2 == 0) {
+          await Future.delayed(const Duration(milliseconds: 25));
         }
       }
     }
