@@ -7,6 +7,8 @@ import 'views/agregar_perro_screen.dart';
 import 'repositories/auth_repository.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/perro_viewmodel.dart';
+import 'viewmodels/firma_viewmodel.dart';
+import 'viewmodels/solicitud_adopcion_viewmodel.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -29,6 +31,16 @@ class MyApp extends StatelessWidget {
         // ViewModel de perros
         ChangeNotifierProvider<PerroViewModel>(
           create: (context) => PerroViewModel(),
+        ),
+
+        // ViewModel de firmas
+        ChangeNotifierProvider<FirmaViewModel>(
+          create: (context) => FirmaViewModel(),
+        ),
+
+        // ViewModel de solicitudes de adopción
+        ChangeNotifierProvider<SolicitudAdopcionViewModel>(
+          create: (context) => SolicitudAdopcionViewModel(),
         ),
       ],
       child: MaterialApp(

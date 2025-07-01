@@ -113,3 +113,42 @@ const String estadoTratamiento = 'En Tratamiento';
 const String actividadBaja = 'Baja';
 const String actividadMedia = 'Media';
 const String actividadAlta = 'Alta';
+
+// --- PANTALLA DE SOLICITUDES DE ADOPCIÓN ---
+const String solicitudesAdopcionTitulo = 'Solicitudes de Adopción';
+const String solicitudesNoRegistradas = 'No hay solicitudes de adopción registradas.';
+const String solicitudesCargando = 'Cargando solicitudes...';
+const String solicitudesErrorCargar = 'Error al cargar las solicitudes';
+const String solicitudNombreLabel = 'Solicitante: ';
+const String solicitudPerroLabel = 'Perro: ';
+const String solicitudEstadoLabel = 'Estado: ';
+const String solicitudFechaLabel = 'Fecha: ';
+const String solicitudTelefono1Label = 'Teléfono 1: ';
+const String solicitudTelefono2Label = 'Teléfono 2: ';
+const String solicitudDescripcionLabel = 'Descripción: ';
+
+// Botones de acción para solicitudes
+const String botonAceptarSolicitud = 'Aceptar';
+const String botonRechazarSolicitud = 'Rechazar';
+const String botonContactarWhatsApp = 'Contactar';
+
+// Estados de solicitudes
+const String estadoPendiente = 'Pendiente';
+const String estadoAceptado = 'Aceptado';
+const String estadoRechazado = 'Rechazado';
+
+// Mensajes de procesamiento
+const String procesandoSolicitud = 'Procesando solicitud...';
+const String solicitudAceptadaExito = 'Solicitud aceptada exitosamente';
+const String solicitudRechazadaExito = 'Solicitud rechazada exitosamente';
+const String errorAceptarSolicitud = 'Error al aceptar la solicitud';
+const String errorRechazarSolicitud = 'Error al rechazar la solicitud';
+
+// Confirmaciones
+const String confirmarAceptarSolicitud = '¿Estás seguro de que deseas aceptar esta solicitud de adopción?';
+const String confirmarRechazarSolicitud = '¿Estás seguro de que deseas rechazar esta solicitud de adopción?';
+const String tituloConfirmacion = 'Confirmar acción';
+
+// WhatsApp
+const String abrirWhatsApp = 'Abrir WhatsApp';
+const String seleccionarTelefono = 'Seleccionar teléfono';

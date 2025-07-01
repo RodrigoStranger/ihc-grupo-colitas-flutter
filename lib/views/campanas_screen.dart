@@ -41,24 +41,22 @@ class _CampanasScreenState extends State<CampanasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => FirmaViewModel(),
-      child: Scaffold(
-        backgroundColor: lightPastelBlue,
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text(
-            menuCampanasTitle,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+    return Scaffold(
+      backgroundColor: lightPastelBlue,
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          menuCampanasTitle,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-          backgroundColor: accentBlue,
-          elevation: 0,
         ),
-        body: Consumer<FirmaViewModel>(
-          builder: (context, viewModel, _) {
+        backgroundColor: accentBlue,
+        elevation: 0,
+      ),
+      body: Consumer<FirmaViewModel>(
+        builder: (context, viewModel, _) {
             // Cargar las firmas solo una vez al inicio con optimización
             if (!viewModel.isLoading && viewModel.firmas.isEmpty && !_initialLoadCompleted) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,7 +220,6 @@ class _CampanasScreenState extends State<CampanasScreen> {
             );
           },
         ),
-      ),
-    );
+      );
   }
 }

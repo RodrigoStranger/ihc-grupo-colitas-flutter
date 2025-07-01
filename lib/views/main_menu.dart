@@ -6,6 +6,7 @@ import '../core/strings.dart';
 import '../widgets/menu_option_card.dart';
 import 'campanas_screen.dart'; // Asegúrate de importar la pantalla de campañas
 import 'perros_screen.dart'; // Importar la pantalla de perros
+import 'solicitudes_adopcion_screen.dart'; // Importar la pantalla de solicitudes de adopción
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -97,7 +98,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _onAdopcionesTap() {
-    // TODO: Implementar navegación o acción para adopciones
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SolicitudesAdopcionScreen()),
+    );
   }
 
   void _onCampanasTap() {
