@@ -108,8 +108,6 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
     );
     final url = 'https://wa.me/$numeroLimpio?text=$mensaje';
     
-    debugPrint('Intentando abrir WhatsApp con URL: $url'); // Para debug
-    
     try {
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -125,7 +123,6 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error al abrir WhatsApp: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -326,35 +323,24 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
             final solicitudes = viewModel.solicitudes;
             
             if (solicitudes.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.pets,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
+              return RefreshIndicator(
+                onRefresh: () => viewModel.refresh(),
+                color: accentBlue,
+                backgroundColor: Colors.white,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.4),
+                    Center(
+                      child: Text(
                         solicitudesNoRegistradas,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.black,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Esto es normal si no hay solicitudes en la base de datos.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             }
@@ -365,6 +351,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
               backgroundColor: Colors.white,
               child: ListView.separated(
                 controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                 itemCount: solicitudes.length + (viewModel.isLoadingMore ? 1 : 0),
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -500,8 +487,9 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                           const SizedBox(height: 16),
                         ],
                         
-                        // Botones de acción
-                        if (solicitud.estadoSolicitante.toLowerCase() == 'pendiente') ...[
+                        // Botones de acción según el estado
+                        if (solicitud.estadoSolicitante.toLowerCase().trim() == 'pendiente') ...[
+                          // Solicitudes pendientes: 3 botones
                           Row(
                             children: [
                               Expanded(
@@ -546,19 +534,142 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                               ),
                             ],
                           ),
-                        ] else ...[
-                          // Solo mostrar botón de contactar para solicitudes ya procesadas
-                          Center(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _contactarWhatsApp(solicitud),
-                              icon: const Icon(Icons.message, size: 18),
-                              label: const Text(botonContactarWhatsApp),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[600],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        ] else if (solicitud.estadoSolicitante.toLowerCase().trim() == 'aceptado') ...[
+                          // Solicitudes aceptadas: solo contactar + estado
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.green),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Solicitud Aceptada',
+                                        style: TextStyle(
+                                          color: Colors.green[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () => _contactarWhatsApp(solicitud),
+                                icon: const Icon(Icons.message, size: 18),
+                                label: const Text(botonContactarWhatsApp),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green[600],
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else if (solicitud.estadoSolicitante.toLowerCase().trim() == 'rechazado') ...[
+                          // Solicitudes rechazadas: solo contactar + estado
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.red),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.cancel, color: Colors.red, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Solicitud Rechazada',
+                                        style: TextStyle(
+                                          color: Colors.red[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                onPressed: () => _contactarWhatsApp(solicitud),
+                                icon: const Icon(Icons.message, size: 18),
+                                label: const Text(botonContactarWhatsApp),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green[600],
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          // Estado desconocido: mostrar todos los botones por defecto
+                          Column(
+                            children: [
+                              Text(
+                                'Estado desconocido: "${solicitud.estadoSolicitante}"',
+                                style: TextStyle(color: Colors.orange, fontSize: 12),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: viewModel.isProcessing 
+                                        ? null 
+                                        : () => _confirmarAceptarSolicitud(solicitud),
+                                      icon: const Icon(Icons.check, size: 18),
+                                      label: const Text(botonAceptarSolicitud),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: viewModel.isProcessing 
+                                        ? null 
+                                        : () => _confirmarRechazarSolicitud(solicitud),
+                                      icon: const Icon(Icons.close, size: 18),
+                                      label: const Text(botonRechazarSolicitud),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _contactarWhatsApp(solicitud),
+                                    icon: const Icon(Icons.message, size: 18),
+                                    label: const Text(botonContactarWhatsApp),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green[600],
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ],

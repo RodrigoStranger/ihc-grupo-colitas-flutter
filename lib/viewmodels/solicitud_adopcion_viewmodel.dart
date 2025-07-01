@@ -572,4 +572,51 @@ class SolicitudAdopcionViewModel extends ChangeNotifier {
     _error = null;
     _safeNotifyListeners();
   }
+
+  /// Método temporal para agregar solicitudes de prueba (SOLO PARA TESTING)
+  void addTestSolicitudes() {
+    if (_isDisposed) return;
+    
+    final solicitudesPrueba = [
+      SolicitudAdopcionModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        nombreSolicitante: 'Ana Pérez',
+        numero1Solicitante: '987654321',
+        numero2Solicitante: '954123456',
+        descripcionSolicitante: 'Tengo experiencia con perros y un jardín amplio.',
+        estadoSolicitante: 'Pendiente',
+        fechaSolicitante: DateTime.now().toString(),
+        idPerro: '1',
+        nombrePerro: 'Bobby',
+        fotoPerro: null,
+      ),
+      SolicitudAdopcionModel(
+        id: (DateTime.now().millisecondsSinceEpoch + 1).toString(),
+        nombreSolicitante: 'Carlos López',
+        numero1Solicitante: '912345678',
+        numero2Solicitante: null,
+        descripcionSolicitante: 'Familia con niños pequeños.',
+        estadoSolicitante: 'Aceptado',
+        fechaSolicitante: DateTime.now().toString(),
+        idPerro: '2',
+        nombrePerro: 'Luna',
+        fotoPerro: null,
+      ),
+      SolicitudAdopcionModel(
+        id: (DateTime.now().millisecondsSinceEpoch + 2).toString(),
+        nombreSolicitante: 'María García',
+        numero1Solicitante: '998877665',
+        numero2Solicitante: '945667788',
+        descripcionSolicitante: 'Vivo sola y busco una mascota para acompañarme.',
+        estadoSolicitante: 'Rechazado',
+        fechaSolicitante: DateTime.now().toString(),
+        idPerro: '3',
+        nombrePerro: 'Max',
+        fotoPerro: null,
+      ),
+    ];
+    
+    _solicitudes.addAll(solicitudesPrueba);
+    _safeNotifyListeners();
+  }
 }
