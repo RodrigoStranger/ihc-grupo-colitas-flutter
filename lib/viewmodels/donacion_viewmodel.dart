@@ -20,11 +20,6 @@ class DonacionViewModel extends ChangeNotifier {
   String? get error => _error;
   String? get filtroEstado => _filtroEstado;
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> fetchSolicitudes({bool resetFiltro = false}) async {
     if (resetFiltro) {
       _filtroEstado = null;

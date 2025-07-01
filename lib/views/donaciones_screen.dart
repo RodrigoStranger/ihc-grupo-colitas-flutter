@@ -15,7 +15,6 @@ class DonacionesScreen extends StatefulWidget {
 
 class _DonacionesScreenState extends State<DonacionesScreen> {
   final ScrollController _scrollController = ScrollController();
-  bool _initialLoadCompleted = false;
 
   @override
   void initState() {
@@ -207,7 +206,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                       solicitud.estadoSolicitanteDonacion,
                       style: TextStyle(color: statusColor),
                     ),
-                    backgroundColor: statusColor.withOpacity(0.1),
+                    backgroundColor: statusColor.withValues(alpha: 0.1),
                   ),
                 ],
               ),
@@ -274,6 +273,8 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     BuildContext context,
     Donacion solicitud,
   ) async {
+    final viewModel = context.read<DonacionViewModel>();
+    
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -282,7 +283,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     );
     // Actualizar lista después de regresar
     if (mounted) {
-      context.read<DonacionViewModel>().fetchSolicitudes();
+      viewModel.fetchSolicitudes();
     }
   }
 
@@ -292,12 +293,15 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     String nuevoEstado,
   ) async {
     final viewModel = context.read<DonacionViewModel>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     try {
       await viewModel.cambiarEstadoSolicitud(
         solicitud.idSolicitanteDonacion!,
         nuevoEstado,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('Solicitud ${nuevoEstado.toLowerCase()} con éxito'),
           backgroundColor: nuevoEstado == 'Aprobado'
@@ -306,7 +310,8 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('Error al cambiar estado: ${e.toString()}'),
           backgroundColor: Colors.red,
