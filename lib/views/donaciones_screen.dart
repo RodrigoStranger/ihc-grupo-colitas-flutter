@@ -15,6 +15,8 @@ class DonacionesScreen extends StatefulWidget {
 
 class _DonacionesScreenState extends State<DonacionesScreen> {
   final ScrollController _scrollController = ScrollController();
+  String _filtroEstado = 'Todos'; // Filtro seleccionado
+  final List<String> _opcionesFiltro = ['Todos', 'Pendiente', 'Aceptado', 'Rechazado'];
 
   @override
   void initState() {
@@ -56,9 +58,30 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
         backgroundColor: accentBlue,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_alt),
-            onPressed: () => _showFilterDialog(context),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list, color: Colors.white),
+            onSelected: (String value) {
+              setState(() {
+                _filtroEstado = value;
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return _opcionesFiltro.map((String opcion) {
+                return PopupMenuItem<String>(
+                  value: opcion,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _filtroEstado == opcion ? Icons.check : Icons.circle_outlined,
+                        color: _filtroEstado == opcion ? accentBlue : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(opcion),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
           ),
           IconButton(
             icon: const Icon(Icons.search),
@@ -66,7 +89,48 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
           ),
         ],
       ),
-      body: Consumer<DonacionViewModel>(
+      body: Column(
+        children: [
+          // Chip indicador del filtro activo
+          if (_filtroEstado != 'Todos')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 16,
+                    color: accentBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filtrando: $_filtroEstado',
+                    style: TextStyle(
+                      color: accentBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _filtroEstado = 'Todos';
+                      });
+                    },
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: accentBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Lista de donaciones
+          Expanded(
+            child: Consumer<DonacionViewModel>(
         builder: (context, viewModel, _) {
           if (viewModel.isLoading && viewModel.solicitudes.isEmpty) {
             return Center(
@@ -118,6 +182,51 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
             );
           }
 
+          final todasLasSolicitudes = viewModel.solicitudes;
+          final solicitudes = _filtrarSolicitudes(todasLasSolicitudes);
+
+          if (todasLasSolicitudes.isNotEmpty && solicitudes.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: viewModel.fetchSolicitudes,
+              color: accentBlue,
+              backgroundColor: Colors.white,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.4),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No hay solicitudes con filtro: $_filtroEstado',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Cambia el filtro para ver más resultados',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return RefreshIndicator(
             onRefresh: viewModel.fetchSolicitudes,
             color: accentBlue,
@@ -126,11 +235,11 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
               itemCount:
-                  viewModel.solicitudes.length +
+                  solicitudes.length +
                   (viewModel.isLoadingMore ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index >= viewModel.solicitudes.length) {
+                if (index >= solicitudes.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.0),
                     child: Center(
@@ -140,14 +249,33 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 }
                 return _buildSolicitudCard(
                   context,
-                  viewModel.solicitudes[index],
+                  solicitudes[index],
                 );
               },
             ),
           );
         },
       ),
+          ),
+        ],
+      ),
     );
+  }
+
+  // Función para filtrar solicitudes por estado
+  List<Donacion> _filtrarSolicitudes(List<Donacion> solicitudes) {
+    if (_filtroEstado == 'Todos') {
+      return solicitudes;
+    }
+    
+    // Mapear "Aceptado" del filtro UI a "Aprobado" del backend
+    String estadoBackend = _filtroEstado;
+    if (_filtroEstado == 'Aceptado') {
+      estadoBackend = 'Aprobado';
+    }
+    
+    return solicitudes.where((solicitud) => 
+      solicitud.estadoSolicitanteDonacion.toLowerCase() == estadoBackend.toLowerCase()).toList();
   }
 
   Widget _buildSolicitudCard(BuildContext context, Donacion solicitud) {
@@ -318,40 +446,6 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
         ),
       );
     }
-  }
-
-  void _showFilterDialog(BuildContext context) {
-    final viewModel = context.read<DonacionViewModel>();
-    final estados = [
-      'Todos',
-      'Pendiente',
-      'Aprobado',
-      'Rechazado',
-      'Completado',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Filtrar por estado'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: estados
-              .map(
-                (estado) => RadioListTile<String>(
-                  title: Text(estado),
-                  value: estado,
-                  groupValue: viewModel.filtroEstado ?? 'Todos',
-                  onChanged: (value) {
-                    Navigator.pop(context);
-                    viewModel.filtrarPorEstado(value == 'Todos' ? null : value);
-                  },
-                ),
-              )
-              .toList(),
-        ),
-      ),
-    );
   }
 
   void _showSearchDialog(BuildContext context) {
