@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 
 import '../core/colors.dart';
 import '../viewmodels/donacion_viewmodel.dart';
-import '../widgets/base_confirmation_dialog.dart';
 
 class DonacionesScreen extends StatefulWidget {
   const DonacionesScreen({super.key});
@@ -270,9 +269,9 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     // Mapear estados del filtro UI a estados del backend
     String estadoBackend = _filtroEstado;
     if (_filtroEstado == 'Concluido') {
-      estadoBackend = 'Aprobado';
+      estadoBackend = 'Concluido';
     } else if (_filtroEstado == 'No concluido') {
-      estadoBackend = 'Rechazado';
+      estadoBackend = 'No Concluido';
     }
     
     return solicitudes.where((solicitud) => 
@@ -526,46 +525,199 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     }
   }
 
-  // Confirmar marcar como concluido
-  Future<void> _confirmarMarcarConcluido(Donacion solicitud) async {
-    final confirm = await BaseConfirmationDialog.show(
-      context,
-      title: 'Marcar como Concluido',
-      titleIcon: Icons.check_circle,
-      message: '¿Estás seguro de que quieres marcar como concluida la solicitud de donación de ${solicitud.nombreSolicitanteDonacion}?',
-      warningMessage: 'Esta acción cambiará el estado de la solicitud a concluido.',
-      confirmText: 'Marcar como Concluido',
-      confirmColor: Colors.green,
+  // Función para mostrar modal de confirmación para concluir donación
+  Future<void> _mostrarConfirmacionConcluir(BuildContext context, Donacion solicitud) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Confirmar Conclusión',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '¿Estás seguro de que deseas marcar esta donación como concluida?',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.green[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Esta acción marcará la donación como exitosamente completada.',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _cambiarEstado(context, solicitud, 'Concluido');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Marcar como Concluido',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
-
-    if (confirm == true && mounted) {
-      await _cambiarEstado(context, solicitud, 'Aprobado');
-    }
   }
 
-  // Confirmar marcar como no concluido
-  Future<void> _confirmarMarcarNoConcluido(Donacion solicitud) async {
-    final confirm = await BaseConfirmationDialog.show(
-      context,
-      title: 'Marcar como No Concluido',
-      titleIcon: Icons.cancel,
-      message: '¿Estás seguro de que quieres marcar como no concluida la solicitud de donación de ${solicitud.nombreSolicitanteDonacion}?',
-      warningMessage: 'Esta acción cambiará el estado de la solicitud a no concluido.',
-      confirmText: 'Marcar como No Concluido',
-      confirmColor: Colors.red,
-      cancelColor: accentBlue,
+  // Función para mostrar modal de confirmación para no concluir donación
+  Future<void> _mostrarConfirmacionNoConcluir(BuildContext context, Donacion solicitud) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.cancel,
+              color: Colors.red,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Confirmar No Conclusión',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '¿Estás seguro de que deseas marcar esta donación como no concluida?',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_outlined, color: Colors.red[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Esta acción marcará la donación como no completada o fallida.',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _cambiarEstado(context, solicitud, 'No Concluido');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Marcar como No Concluido',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
-
-    if (confirm == true && mounted) {
-      await _cambiarEstado(context, solicitud, 'Rechazado');
-    }
   }
 
   Color _getEstadoColor(String estado) {
     switch (estado.toLowerCase()) {
       case 'aprobado':
+      case 'concluido':
         return Colors.green;
       case 'rechazado':
+      case 'no concluido':
         return Colors.red;
       default:
         return Colors.orange;
@@ -690,7 +842,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
           // Descripción
           if (solicitud.descripcionSolicitanteDonacion.isNotEmpty) ...[
             Text(
-              'Descripción:',
+              'Descripción de la Donación:',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -711,35 +863,33 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _confirmarMarcarConcluido(solicitud),
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Concluido'),
+                  child: ElevatedButton(
+                    onPressed: () => _mostrarConfirmacionConcluir(context, solicitud),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
+                    child: const Text('Concluido'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _confirmarMarcarNoConcluido(solicitud),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('No Concluido'),
+                  child: ElevatedButton(
+                    onPressed: () => _mostrarConfirmacionNoConcluir(context, solicitud),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
+                    child: const Text('No Concluido'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => _contactarWhatsApp(solicitud),
                   icon: const Icon(Icons.message, size: 18),
-                  label: const Text('WhatsApp'),
+                  label: const Text('Contactar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[600],
                     foregroundColor: Colors.white,
@@ -748,7 +898,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ),
               ],
             ),
-          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'aprobado') ...[
+          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'concluido') ...[
             // Solicitudes concluidas: solo contactar + estado
             Row(
               children: [
@@ -780,7 +930,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ElevatedButton.icon(
                   onPressed: () => _contactarWhatsApp(solicitud),
                   icon: const Icon(Icons.message, size: 18),
-                  label: const Text('WhatsApp'),
+                  label: const Text('Contactar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[600],
                     foregroundColor: Colors.white,
@@ -789,7 +939,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ),
               ],
             ),
-          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'rechazado') ...[
+          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'no concluido') ...[
             // Solicitudes no concluidas: solo contactar + estado
             Row(
               children: [
@@ -821,7 +971,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ElevatedButton.icon(
                   onPressed: () => _contactarWhatsApp(solicitud),
                   icon: const Icon(Icons.message, size: 18),
-                  label: const Text('WhatsApp'),
+                  label: const Text('Contactar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[600],
                     foregroundColor: Colors.white,
@@ -842,35 +992,33 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _confirmarMarcarConcluido(solicitud),
-                        icon: const Icon(Icons.check, size: 18),
-                        label: const Text('Concluido'),
+                      child: ElevatedButton(
+                        onPressed: () => _mostrarConfirmacionConcluir(context, solicitud),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
+                        child: const Text('Concluido'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _confirmarMarcarNoConcluido(solicitud),
-                        icon: const Icon(Icons.close, size: 18),
-                        label: const Text('No Concluido'),
+                      child: ElevatedButton(
+                        onPressed: () => _mostrarConfirmacionNoConcluir(context, solicitud),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
+                        child: const Text('No Concluido'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: () => _contactarWhatsApp(solicitud),
                       icon: const Icon(Icons.message, size: 18),
-                      label: const Text('WhatsApp'),
+                      label: const Text('Contactar'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[600],
                         foregroundColor: Colors.white,
@@ -902,14 +1050,14 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
       );
       if (!mounted) return;
       
-      String mensaje = nuevoEstado == 'Aprobado' 
+      String mensaje = nuevoEstado == 'Concluido' 
           ? 'Donación marcada como concluida con éxito'
           : 'Donación marcada como no concluida con éxito';
           
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(mensaje),
-          backgroundColor: nuevoEstado == 'Aprobado'
+          backgroundColor: nuevoEstado == 'Concluido'
               ? Colors.green
               : Colors.red,
         ),
