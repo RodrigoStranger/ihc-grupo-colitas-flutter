@@ -291,7 +291,7 @@ class _PerrosScreenState extends State<PerrosScreen> {
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Imagen del perro
                 Container(
@@ -462,6 +462,7 @@ class _PerrosScreenState extends State<PerrosScreen> {
                     ],
                   ),
                 ),
+                const Icon(Icons.arrow_forward_ios, size: 18, color: grey400),
               ],
             ),
           ),

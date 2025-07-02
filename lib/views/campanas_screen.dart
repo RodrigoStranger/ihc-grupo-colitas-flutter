@@ -99,7 +99,17 @@ class _CampanasScreenState extends State<CampanasScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Error: ${viewModel.error}'),
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red[300],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error al cargar campañas: ${viewModel.error}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => viewModel.initializeWithOptimizedImageLoading(),
@@ -113,16 +123,27 @@ class _CampanasScreenState extends State<CampanasScreen> {
             final firmas = viewModel.firmas;
             
             if (firmas.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    campanasNoRegistradas,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.black,
+              return RefreshIndicator(
+                onRefresh: () => viewModel.refresh(),
+                color: accentBlue,
+                backgroundColor: Colors.white,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.4),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          campanasNoRegistradas,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
                 ),
               );
             }
@@ -133,6 +154,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
               backgroundColor: Colors.white,
               child: ListView.separated(
                 controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                 itemCount: firmas.length + (viewModel.isLoadingMore ? 1 : 0),
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
