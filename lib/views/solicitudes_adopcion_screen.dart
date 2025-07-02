@@ -329,8 +329,8 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
       message: '¿Estás seguro de que quieres rechazar la solicitud de adopción de ${solicitud.nombreSolicitante} para el perro ${solicitud.nombrePerro ?? 'sin nombre'}?',
       warningMessage: 'Esta acción cambiará el estado de la solicitud a rechazado.',
       confirmText: 'Rechazar Solicitud',
-      confirmColor: Colors.red,
-      cancelColor: accentBlue,
+      confirmColor: accentBlue,
+      cancelColor: Colors.red,
     );
 
     if (confirm == true && mounted) {
