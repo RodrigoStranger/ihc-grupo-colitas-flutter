@@ -307,7 +307,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
 
     // Si solo hay un número, usar ese directamente
     if (numero2 == null || numero2.isEmpty) {
-      await _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion);
+      await _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion, solicitud.descripcionSolicitanteDonacion);
       return;
     }
 
@@ -369,7 +369,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion);
+                  _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion, solicitud.descripcionSolicitanteDonacion);
                 },
               ),
             ),
@@ -405,7 +405,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _abrirWhatsApp(numero2, solicitud.nombreSolicitanteDonacion);
+                  _abrirWhatsApp(numero2, solicitud.nombreSolicitanteDonacion, solicitud.descripcionSolicitanteDonacion);
                 },
               ),
             ),
@@ -434,7 +434,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
     );
   }
 
-  Future<void> _abrirWhatsApp(String telefono, String nombre) async {
+  Future<void> _abrirWhatsApp(String telefono, String nombre, String descripcionDonacion) async {
     try {
       // Limpiar el número: quitar espacios, guiones, paréntesis
       String numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
@@ -453,7 +453,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
       }
       
       final mensaje = Uri.encodeComponent(
-        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de donación.'
+        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de donación de: $descripcionDonacion'
       );
       
       // SIEMPRE usar el número CON +51 para wa.me
