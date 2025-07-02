@@ -163,3 +163,29 @@ const String filtroRechazado = 'Rechazado';
 const String filtrandoLabel = 'Filtrando: ';
 const String cambiarFiltroHint = 'Intenta cambiar el filtro';
 const String noHaySolicitudesFiltro = 'No hay solicitudes';
+
+// --- PANTALLA DE VOLUNTARIADO ---
+const String voluntariadoTitulo = 'Solicitudes de Voluntariado';
+const String voluntariadoNoRegistradas = 'No hay solicitudes de voluntariado registradas.';
+const String voluntariadoCargando = 'Cargando solicitudes...';
+const String voluntariadoErrorCargar = 'Error al cargar las solicitudes';
+const String voluntariadoNombreLabel = 'Voluntario: ';
+const String voluntariadoDescripcionLabel = 'Descripción: ';
+const String voluntariadoTelefono1Label = 'Teléfono 1: ';
+const String voluntariadoTelefono2Label = 'Teléfono 2: ';
+const String voluntariadoFechaLabel = 'Fecha: ';
+const String voluntariadoEstadoLabel = 'Estado: ';
+
+// Estados de voluntariado
+const String voluntariadoEstadoPendiente = 'Pendiente';
+const String voluntariadoEstadoConcluido = 'Concluido';
+const String voluntariadoEstadoNoConcluido = 'No Concluido';
+
+// Mensajes de voluntariado
+const String voluntariadoConcluidoExito = 'Solicitud de voluntariado marcada como concluida con éxito';
+const String voluntariadoNoConcluidoExito = 'Solicitud de voluntariado marcada como no concluida con éxito';
+const String voluntariadoErrorCambiarEstado = 'Error al cambiar estado';
+
+// Confirmaciones de voluntariado
+const String confirmarConcluirVoluntariado = '¿Estás seguro de que deseas marcar esta solicitud de voluntariado como concluida?';
+const String confirmarNoConcluirVoluntariado = '¿Estás seguro de que deseas marcar esta solicitud de voluntariado como no concluida?';

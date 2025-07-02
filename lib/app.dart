@@ -7,6 +7,7 @@ import 'viewmodels/firma_viewmodel.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/perro_viewmodel.dart';
 import 'viewmodels/solicitud_adopcion_viewmodel.dart';
+import 'viewmodels/voluntariado_viewmodel.dart';
 import 'views/agregar_perro_screen.dart';
 import 'views/donaciones_screen.dart';
 import 'views/login.dart';
@@ -45,6 +46,11 @@ class MyApp extends StatelessWidget {
         // ViewModel de solicitudes de adopción
         ChangeNotifierProvider<SolicitudAdopcionViewModel>(
           create: (context) => SolicitudAdopcionViewModel(),
+        ),
+
+        // ViewModel de voluntariado
+        ChangeNotifierProvider<VoluntariadoViewModel>(
+          create: (context) => VoluntariadoViewModel(),
         ),
       ],
       child: MaterialApp(
