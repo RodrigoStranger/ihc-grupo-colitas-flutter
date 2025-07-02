@@ -120,7 +120,7 @@ lib/
 
 1. **Clonar el repositorio**
    ```bash
-   git clone <url-del-repositorio>
+   git clone [<url-del-repositorio>](https://github.com/RodrigoStranger/ihc-grupo-colitas-flutter.git)
    cd ihc-grupo-colitas-flutter
    ```
 
@@ -156,22 +156,6 @@ lib/
 - `DescripcionPerro` - Descripción detallada
 - `FotoPerro` - URL de la imagen
 - `IngresoPerro` - Fecha de ingreso
-
-#### Tabla: Donaciones
-- `id` (Primary Key)
-- `donante_nombre` - Nombre del donante
-- `tipo` - Tipo de donación
-- `monto` - Cantidad donada
-- `descripcion` - Descripción de la donación
-- `fecha_donacion` - Fecha de la donación
-- `comprobante_url` - URL del comprobante
-- `metodo_pago` - Método de pago utilizado
-- `estado` - Estado de la donación
-
-#### Tabla: Firmas (Campañas)
-- Campos para gestión de firmas de campañas
-- Información de contacto de firmantes
-- Motivos y fechas de participación
 
 ## 🎨 Características Técnicas
 
@@ -227,10 +211,9 @@ Este proyecto está bajo la Licencia MIT
 ## 📞 Contacto
 
 **Grupo Colitas Arequipa**
-- Email: 
-- Sitio web: 
-- Facebook:
+- Sitio web: https://grupo-colitas-aqp.vercel.app/home
+- Facebook: https://www.facebook.com/people/Asociaci%C3%B3n-Colitas-Oficial-Arequipa/100088175020547/?rdid=vqISWL2JHRi89qNO&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1AKkzZcoLX%2F
 
 ---
 
-Desarrollado con ❤️ para el bienestar anima
+Desarrollado con ❤️ para el bienestar animal
