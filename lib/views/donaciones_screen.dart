@@ -16,7 +16,7 @@ class DonacionesScreen extends StatefulWidget {
 class _DonacionesScreenState extends State<DonacionesScreen> {
   final ScrollController _scrollController = ScrollController();
   String _filtroEstado = 'Todos'; // Filtro seleccionado
-  final List<String> _opcionesFiltro = ['Todos', 'Pendiente', 'Aceptado', 'Rechazado'];
+  final List<String> _opcionesFiltro = ['Todos', 'Pendiente', 'Concluido', 'No concluido'];
 
   @override
   void initState() {
@@ -264,10 +264,12 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
       return solicitudes;
     }
     
-    // Mapear "Aceptado" del filtro UI a "Aprobado" del backend
+    // Mapear estados del filtro UI a estados del backend
     String estadoBackend = _filtroEstado;
-    if (_filtroEstado == 'Aceptado') {
+    if (_filtroEstado == 'Concluido') {
       estadoBackend = 'Aprobado';
+    } else if (_filtroEstado == 'No concluido') {
+      estadoBackend = 'Rechazado';
     }
     
     return solicitudes.where((solicitud) => 
