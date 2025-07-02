@@ -37,6 +37,8 @@ const String menuCampanasTitle = 'Gestión de Campañas';
 const String menuCampanasDesc = 'Visualiza la campaña actual del Grupo Colitas.';
 const String menuAnimalesTitle = 'Gestión de Animales';
 const String menuAnimalesDesc = 'Registra y administra los animales del refugio del Grupo Colitas.';
+const String menuVoluntariadoTitle = 'Gestión de Voluntariado';
+const String menuVoluntariadoDesc = 'Gestiona solicitudes de voluntarios del Grupo Colitas.';
 
 // --- PANTALLA DE CAMPAÑAS ---
 const String campanasNoRegistradas = 'No hay campañas registradas.';

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/colors.dart';
 import '../core/strings.dart';
@@ -8,6 +7,7 @@ import 'solicitudes_adopcion_screen.dart'; // Importar la pantalla de solicitude
 import 'campanas_screen.dart';
 import 'donaciones_screen.dart';
 import 'perros_screen.dart';
+import 'voluntariado_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -77,16 +77,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     description: menuAnimalesDesc,
                     onTap: _onAnimalesTap,
                   ),
+                  MenuOptionCard(
+                    icon: Icons.people,
+                    title: menuVoluntariadoTitle,
+                    description: menuVoluntariadoDesc,
+                    onTap: _onVoluntariadoTap,
+                  ),
                 ],
               ),
-            ),
-            // Footer con versión
-            FutureBuilder<PackageInfo>(
-              future: PackageInfo.fromPlatform(),
-              builder: (context, snapshot) {
-                final version = snapshot.hasData ? snapshot.data!.version : '';
-                return _buildFooter(version);
-              },
             ),
           ],
         ),
@@ -120,20 +118,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     ).push(MaterialPageRoute(builder: (_) => const PerrosScreen()));
   }
 
-  Widget _buildFooter(String version) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              '$appVersionPrefix ${version.isNotEmpty ? version : '1.0.0'}',
-              style: TextStyle(color: Colors.grey[500], fontSize: 10),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _onVoluntariadoTap() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const VoluntariadoScreen()));
   }
 }
