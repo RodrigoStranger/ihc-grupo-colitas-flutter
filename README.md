@@ -3,6 +3,8 @@
 Una aplicación Flutter para la gestión administrativa del refugio de animales "Grupo Colitas Arequipa". Esta aplicación permite a los administradores gestionar animales, donaciones, campañas y adopciones de manera eficiente.
 
 ## 📱 Características Principales
+![Login](assets/entrada.png)
+![Menú principal de la app](assets/principal.png)
 
 ### 🐕 Gestión de Animales
 - **Registro de perros**: Agregar nuevos perros al refugio con información completa
@@ -11,16 +13,22 @@ Una aplicación Flutter para la gestión administrativa del refugio de animales 
 - **Galería de imágenes**: Visualización optimizada de fotos de los animales
 - **Filtros**: Filtrar animales por estado (Disponible, Adoptado, En Tratamiento)
 
+![Lista de perros registrados](assets/adopción.png)
+
 ### 💰 Gestión de Donaciones
 - **Visualización de donaciones**: Lista paginada de todas las donaciones
 - **Detalles de donación**: Información completa
 - **Gestión de comprobantes**: Visualización de documentos de respaldo
 - **Estados de donación**: Seguimiento del estado de cada donación
 
+![Vista de donaciones registradas](assets/donaciones.png)
+
 ### 📋 Gestión de Campañas
 - **Campañas activas**: Visualización de campañas del refugio
 - **Gestión de firmas**: Administración de firmas de apoyo
 - **Detalles de participación**: Información detallada de cada firma
+
+![Lista de campañas activas](assets/campañas.png)
 
 ### 🔐 Panel de Administración
 - **Autenticación segura**: Login con Supabase Authentication
