@@ -154,7 +154,17 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Error: ${viewModel.error}'),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red[300],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error al cargar donaciones: ${viewModel.error}',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: viewModel.fetchSolicitudes,
@@ -166,16 +176,27 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
           }
 
           if (viewModel.solicitudes.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Text(
-                  'No hay solicitudes pendientes',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(color: Colors.black),
-                  textAlign: TextAlign.center,
-                ),
+            return RefreshIndicator(
+              onRefresh: viewModel.refreshSolicitudes,
+              color: accentBlue,
+              backgroundColor: Colors.white,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.4),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'No hay solicitudes pendientes',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(color: Colors.black),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -185,7 +206,7 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
 
           if (todasLasSolicitudes.isNotEmpty && solicitudes.isEmpty) {
             return RefreshIndicator(
-              onRefresh: viewModel.fetchSolicitudes,
+              onRefresh: viewModel.refreshSolicitudes,
               color: accentBlue,
               backgroundColor: Colors.white,
               child: ListView(
@@ -226,11 +247,12 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: viewModel.fetchSolicitudes,
+            onRefresh: viewModel.refreshSolicitudes,
             color: accentBlue,
             backgroundColor: Colors.white,
             child: ListView.separated(
               controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
               itemCount:
                   solicitudes.length +
