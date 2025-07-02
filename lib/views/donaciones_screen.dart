@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ihc_grupo_colitas_flutter/models/donacion_model.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 import '../core/colors.dart';
 import '../viewmodels/donacion_viewmodel.dart';
-import 'donacion_detalle_screen.dart';
+import '../widgets/base_confirmation_dialog.dart';
 
 class DonacionesScreen extends StatefulWidget {
   const DonacionesScreen({super.key});
@@ -276,141 +279,612 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
       solicitud.estadoSolicitanteDonacion.toLowerCase() == estadoBackend.toLowerCase()).toList();
   }
 
-  Widget _buildSolicitudCard(BuildContext context, Donacion solicitud) {
-    Color statusColor;
-    IconData statusIcon;
+  // Método para contactar por WhatsApp
+  Future<void> _contactarWhatsApp(Donacion solicitud) async {
+    final numero1 = solicitud.numero1SolicitanteDonacion;
+    final numero2 = solicitud.numero2SolicitanteDonacion;
 
-    switch (solicitud.estadoSolicitanteDonacion.toLowerCase()) {
-      case 'pendiente':
-        statusColor = Colors.orange;
-        statusIcon = Icons.access_time;
-        break;
-      case 'aprobado':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'rechazado':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      case 'completado':
-        statusColor = Colors.blue;
-        statusIcon = Icons.verified;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help;
+    // Si solo hay un número, usar ese directamente
+    if (numero2 == null || numero2.isEmpty) {
+      await _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion);
+      return;
     }
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showSolicitudDetails(context, solicitud),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      solicitud.nombreSolicitanteDonacion,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    // Si hay dos números, mostrar opciones
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.phone,
+              color: accentBlue,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Seleccionar teléfono',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Chip(
-                    avatar: Icon(statusIcon, size: 16, color: statusColor),
-                    label: Text(
-                      solicitud.estadoSolicitanteDonacion,
-                      style: TextStyle(color: statusColor),
-                    ),
-                    backgroundColor: statusColor.withValues(alpha: 0.1),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                solicitud.descripcionSolicitanteDonacion,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.phone, size: 16, color: grey600),
-                  const SizedBox(width: 8),
-                  Text(solicitud.numero1SolicitanteDonacion),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16, color: grey600),
-                  const SizedBox(width: 8),
-                  Text(solicitud.fechaSolicitanteDonacion.toString()),
-                ],
-              ),
-              if (solicitud.estadoSolicitanteDonacion.toLowerCase() ==
-                  'pendiente')
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
-                        ),
-                        onPressed: () =>
-                            _cambiarEstado(context, solicitud, 'Rechazado'),
-                        child: const Text(
-                          'Rechazar',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
-                        onPressed: () =>
-                            _cambiarEstado(context, solicitud, 'Aprobado'),
-                        child: const Text('Aprobar'),
-                      ),
-                    ],
+                  child: Icon(Icons.phone, color: accentBlue, size: 20),
+                ),
+                title: Text(
+                  'Teléfono 1',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
                   ),
                 ),
-            ],
-          ),
+                subtitle: Text(
+                  numero1,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _abrirWhatsApp(numero1, solicitud.nombreSolicitanteDonacion);
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.phone, color: accentBlue, size: 20),
+                ),
+                title: Text(
+                  'Teléfono 2',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                subtitle: Text(
+                  numero2,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _abrirWhatsApp(numero2, solicitud.nombreSolicitanteDonacion);
+                },
+              ),
+            ),
+          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _showSolicitudDetails(
-    BuildContext context,
-    Donacion solicitud,
-  ) async {
-    final viewModel = context.read<DonacionViewModel>();
-    
-    await Navigator.push(
+  Future<void> _abrirWhatsApp(String telefono, String nombre) async {
+    try {
+      // Limpiar el número: quitar espacios, guiones, paréntesis
+      String numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
+      
+      // Si no empieza con +, agregar código de país de Perú
+      if (!numeroLimpio.startsWith('+')) {
+        if (numeroLimpio.startsWith('9') && numeroLimpio.length == 9) {
+          numeroLimpio = '+51$numeroLimpio';
+        } else if (numeroLimpio.length == 9) {
+          numeroLimpio = '+51$numeroLimpio';
+        } else if (numeroLimpio.length == 8) {
+          numeroLimpio = '+519$numeroLimpio';
+        } else {
+          numeroLimpio = '+51$numeroLimpio';
+        }
+      }
+      
+      final mensaje = Uri.encodeComponent(
+        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de donación.'
+      );
+      
+      // SIEMPRE usar el número CON +51 para wa.me
+      // Solo quitar el + para esquemas nativos como whatsapp://
+      
+      // Intentar método directo primero CON +51
+      final urlDirecta = 'https://wa.me/$numeroLimpio?text=$mensaje';
+      
+      try {
+        final uri = Uri.parse(urlDirecta);
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (launched) {
+          return;
+        }
+      } catch (e) {
+        // Continuar con el siguiente método
+      }
+      
+      // Si falla, intentar con esquema nativo SIN +
+      final numeroSinMas = numeroLimpio.replaceAll('+', '');
+      final urlNativa = 'whatsapp://send?phone=$numeroSinMas&text=$mensaje';
+      
+      try {
+        final uri = Uri.parse(urlNativa);
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (launched) {
+          return;
+        }
+      } catch (e) {
+        // Continuar con el siguiente método
+      }
+      
+      // Último intento: usar launchUrl con diferentes modos CON +51
+      final urlFinal = 'https://wa.me/$numeroLimpio?text=$mensaje';
+      
+      // Intentar con diferentes modos de lanzamiento
+      final modes = [
+        LaunchMode.externalApplication,
+        LaunchMode.platformDefault,
+        LaunchMode.externalNonBrowserApplication,
+      ];
+      
+      for (final mode in modes) {
+        try {
+          final uri = Uri.parse(urlFinal);
+          final launched = await launchUrl(uri, mode: mode);
+          
+          if (launched) {
+            return;
+          }
+        } catch (e) {
+          // Continuar con el siguiente modo
+        }
+      }
+      
+      throw 'No se pudo abrir WhatsApp. Número: $numeroLimpio';
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al contactar por WhatsApp: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Copiar número',
+              textColor: Colors.white,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: telefono));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Número copiado al portapapeles'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  // Confirmar marcar como concluido
+  Future<void> _confirmarMarcarConcluido(Donacion solicitud) async {
+    final confirm = await BaseConfirmationDialog.show(
       context,
-      MaterialPageRoute(
-        builder: (context) => DonacionDetalleScreen(solicitud: solicitud),
+      title: 'Marcar como Concluido',
+      titleIcon: Icons.check_circle,
+      message: '¿Estás seguro de que quieres marcar como concluida la solicitud de donación de ${solicitud.nombreSolicitanteDonacion}?',
+      warningMessage: 'Esta acción cambiará el estado de la solicitud a concluido.',
+      confirmText: 'Marcar como Concluido',
+      confirmColor: Colors.green,
+    );
+
+    if (confirm == true && mounted) {
+      await _cambiarEstado(context, solicitud, 'Aprobado');
+    }
+  }
+
+  // Confirmar marcar como no concluido
+  Future<void> _confirmarMarcarNoConcluido(Donacion solicitud) async {
+    final confirm = await BaseConfirmationDialog.show(
+      context,
+      title: 'Marcar como No Concluido',
+      titleIcon: Icons.cancel,
+      message: '¿Estás seguro de que quieres marcar como no concluida la solicitud de donación de ${solicitud.nombreSolicitanteDonacion}?',
+      warningMessage: 'Esta acción cambiará el estado de la solicitud a no concluido.',
+      confirmText: 'Marcar como No Concluido',
+      confirmColor: Colors.red,
+      cancelColor: accentBlue,
+    );
+
+    if (confirm == true && mounted) {
+      await _cambiarEstado(context, solicitud, 'Rechazado');
+    }
+  }
+
+  Color _getEstadoColor(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'aprobado':
+        return Colors.green;
+      case 'rechazado':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String _formatearFecha(DateTime fecha) {
+    try {
+      final DateFormat formatter = DateFormat('yyyy-MM-dd');
+      return formatter.format(fecha);
+    } catch (e) {
+      // Si hay error al formatear la fecha, devolver la fecha original
+      return fecha.toString();
+    }
+  }
+
+  Widget _buildSolicitudCard(BuildContext context, Donacion solicitud) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Color.lerp(grey900, Colors.transparent, 0.9) ?? grey900,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header con información básica
+          Row(
+            children: [
+              // Icono de donación
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: lightBlue50,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(
+                    Icons.volunteer_activism,
+                    size: 40,
+                    color: accentBlue,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Información básica
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Donación de: ${solicitud.nombreSolicitanteDonacion}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Solicitante: ${solicitud.nombreSolicitanteDonacion}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'Estado: ',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getEstadoColor(solicitud.estadoSolicitanteDonacion),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            solicitud.estadoSolicitanteDonacion,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Información adicional
+          Text(
+            'Teléfono 1: ${solicitud.numero1SolicitanteDonacion}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (solicitud.numero2SolicitanteDonacion != null && solicitud.numero2SolicitanteDonacion!.isNotEmpty) ...[
+            Text(
+              'Teléfono 2: ${solicitud.numero2SolicitanteDonacion}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Fecha: ${_formatearFecha(solicitud.fechaSolicitanteDonacion)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: grey600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          // Descripción
+          if (solicitud.descripcionSolicitanteDonacion.isNotEmpty) ...[
+            Text(
+              'Descripción:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              solicitud.descripcionSolicitanteDonacion,
+              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+          ],
+          
+          // Botones de acción según el estado
+          if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'pendiente') ...[
+            // Solicitudes pendientes: 3 botones
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _confirmarMarcarConcluido(solicitud),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Concluido'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _confirmarMarcarNoConcluido(solicitud),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('No Concluido'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _contactarWhatsApp(solicitud),
+                  icon: const Icon(Icons.message, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'aprobado') ...[
+            // Solicitudes concluidas: solo contactar + estado
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Donación Concluida',
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _contactarWhatsApp(solicitud),
+                  icon: const Icon(Icons.message, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (solicitud.estadoSolicitanteDonacion.toLowerCase().trim() == 'rechazado') ...[
+            // Solicitudes no concluidas: solo contactar + estado
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cancel, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Donación No Concluida',
+                          style: TextStyle(
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _contactarWhatsApp(solicitud),
+                  icon: const Icon(Icons.message, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Estado desconocido: mostrar todos los botones por defecto
+            Column(
+              children: [
+                Text(
+                  'Estado desconocido: "${solicitud.estadoSolicitanteDonacion}"',
+                  style: TextStyle(color: Colors.orange, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _confirmarMarcarConcluido(solicitud),
+                        icon: const Icon(Icons.check, size: 18),
+                        label: const Text('Concluido'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _confirmarMarcarNoConcluido(solicitud),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('No Concluido'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _contactarWhatsApp(solicitud),
+                      icon: const Icon(Icons.message, size: 18),
+                      label: const Text('WhatsApp'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[600],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
-    // Actualizar lista después de regresar
-    if (mounted) {
-      viewModel.fetchSolicitudes();
-    }
   }
 
   Future<void> _cambiarEstado(
@@ -427,9 +901,14 @@ class _DonacionesScreenState extends State<DonacionesScreen> {
         nuevoEstado,
       );
       if (!mounted) return;
+      
+      String mensaje = nuevoEstado == 'Aprobado' 
+          ? 'Donación marcada como concluida con éxito'
+          : 'Donación marcada como no concluida con éxito';
+          
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Solicitud ${nuevoEstado.toLowerCase()} con éxito'),
+          content: Text(mensaje),
           backgroundColor: nuevoEstado == 'Aprobado'
               ? Colors.green
               : Colors.red,
