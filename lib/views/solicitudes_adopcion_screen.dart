@@ -53,7 +53,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
 
     // Si solo hay un número, usar ese directamente
     if (numero2 == null || numero2.isEmpty) {
-      await _abrirWhatsApp(numero1, solicitud.nombreSolicitante);
+      await _abrirWhatsApp(numero1, solicitud.nombreSolicitante, solicitud.nombrePerro ?? 'el perrito');
       return;
     }
 
@@ -115,7 +115,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _abrirWhatsApp(numero1, solicitud.nombreSolicitante);
+                  _abrirWhatsApp(numero1, solicitud.nombreSolicitante, solicitud.nombrePerro ?? 'el perrito');
                 },
               ),
             ),
@@ -151,7 +151,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _abrirWhatsApp(numero2, solicitud.nombreSolicitante);
+                  _abrirWhatsApp(numero2, solicitud.nombreSolicitante, solicitud.nombrePerro ?? 'el perrito');
                 },
               ),
             ),
@@ -180,7 +180,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
     );
   }
 
-  Future<void> _abrirWhatsApp(String telefono, String nombre) async {
+  Future<void> _abrirWhatsApp(String telefono, String nombre, String nombrePerro) async {
     try {
       // Limpiar el número: quitar espacios, guiones, paréntesis
       String numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
@@ -199,7 +199,7 @@ class _SolicitudesAdopcionScreenState extends State<SolicitudesAdopcionScreen> {
       }
       
       final mensaje = Uri.encodeComponent(
-        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de adopción.'
+        'Hola $nombre, te contactamos desde Grupo Colitas Arequipa sobre tu solicitud de adopción de $nombrePerro.'
       );
       
       // SIEMPRE usar el número CON +51 para wa.me
