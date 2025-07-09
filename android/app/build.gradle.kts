@@ -24,8 +24,8 @@ android {
         applicationId = "com.example.ihc_grupo_colitas_flutter"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21 // Forzado explícitamente
+        targetSdk = 33 // Forzado explícitamente
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
