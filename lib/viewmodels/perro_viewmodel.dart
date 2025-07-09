@@ -97,15 +97,18 @@ class PerroViewModel extends ChangeNotifier {
     // Verificar si tenemos una URL válida en caché
     if (_urlCache.containsKey(normalizedFileName)) {
       final expiry = _urlCacheExpiry[normalizedFileName];
-      if (expiry != null && DateTime.now().isBefore(expiry)) {
-        return _urlCache[normalizedFileName];
-      } else {
-        // URL expirada, limpiar del caché
-        _urlCache.remove(normalizedFileName);
-        _urlCacheExpiry.remove(normalizedFileName);
+      if (expiry != null) {
+        final now = DateTime.now();
+        final difference = expiry.difference(now);
+        // Si la URL está vencida o faltan menos de 10 minutos, renovar
+        if (now.isBefore(expiry) && difference.inMinutes > 10) {
+          return _urlCache[normalizedFileName];
+        }
       }
+      // URL expirada o por expirar, limpiar del caché
+      _urlCache.remove(normalizedFileName);
+      _urlCacheExpiry.remove(normalizedFileName);
     }
-
     try {
       // Generar nueva URL firmada
       final newUrl = await _perroRepository.getSignedImageUrl(normalizedFileName);
