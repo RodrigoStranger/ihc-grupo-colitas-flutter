@@ -93,7 +93,7 @@ class FirmaRepository {
       
       // Obtener firmas de la base de datos con paginación
       final response = await _supabase
-          .from('CampañaFirmas')
+          .from('CampanaFirmas')
           .select('DniFirma, NombreFirma, MotivoFirma, FechaRegistro, ImagenFirma')
           .order('FechaRegistro', ascending: false)
           .range(page * pageSize, (page + 1) * pageSize - 1);
