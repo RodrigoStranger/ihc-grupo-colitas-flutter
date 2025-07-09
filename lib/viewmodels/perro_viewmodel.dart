@@ -80,16 +80,15 @@ class PerroViewModel extends ChangeNotifier {
     });
   }
 
-  /// Normaliza el nombre de archivo para evitar problemas de compatibilidad
+  /// Normaliza y codifica el nombre de archivo para URLs seguras
   String _normalizeFileName(String fileName) {
-    // Quitar rutas, espacios, tildes y convertir a minúsculas
     String name = fileName.trim();
     if (name.contains('/')) {
       name = name.split('/').last;
     }
     name = name.replaceAll(' ', '_');
-    // Opcional: puedes agregar más normalizaciones si tus archivos tienen tildes o caracteres especiales
-    return name;
+    // Codifica caracteres especiales para URLs
+    return Uri.encodeFull(name);
   }
 
   /// Obtiene URL firmada desde caché o la genera nueva si es necesaria
@@ -152,25 +151,16 @@ class PerroViewModel extends ChangeNotifier {
   /// Pre-carga URLs de imágenes para acceso inmediato
   Future<void> _preloadImageUrls(List<PerroModel> perros) async {
     if (_disposed) return;
-    
     final futures = <Future<void>>[];
-    
     for (final perro in perros) {
-      if (perro.fotoPerro != null && 
-          perro.fotoPerro!.isNotEmpty && 
-          !perro.fotoPerro!.startsWith('http')) {
-        
-        // Pre-cargar URL en paralelo solo si no está en caché o está expirada
+      if (perro.fotoPerro != null && perro.fotoPerro!.isNotEmpty && !perro.fotoPerro!.startsWith('http')) {
         if (!_isUrlCached(perro.fotoPerro!)) {
           futures.add(_preloadSingleImageUrl(perro.fotoPerro!));
         }
       }
     }
-    
-    // Ejecutar todas las pre-cargas en paralelo sin esperar
     if (futures.isNotEmpty) {
       Future.wait(futures).catchError((e) {
-        // Ignorar errores de pre-carga para no bloquear la UI
         return <void>[];
       });
     }
@@ -179,10 +169,11 @@ class PerroViewModel extends ChangeNotifier {
   /// Pre-carga una sola URL de imagen
   Future<void> _preloadSingleImageUrl(String fileName) async {
     try {
-      final url = await _perroRepository.getSignedImageUrl(fileName);
+      final normalizedFileName = _normalizeFileName(fileName);
+      final url = await _perroRepository.getSignedImageUrl(normalizedFileName);
       if (!_disposed) {
-        _urlCache[fileName] = url;
-        _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 55));
+        _urlCache[normalizedFileName] = url;
+        _urlCacheExpiry[normalizedFileName] = DateTime.now().add(const Duration(minutes: 55));
       }
     } catch (e) {
       // Ignorar errores de pre-carga
@@ -191,26 +182,24 @@ class PerroViewModel extends ChangeNotifier {
 
   /// Verifica si una URL está en caché y no está expirada
   bool _isUrlCached(String fileName) {
-    if (!_urlCache.containsKey(fileName)) return false;
-    
-    final expiry = _urlCacheExpiry[fileName];
+    final normalizedFileName = _normalizeFileName(fileName);
+    if (!_urlCache.containsKey(normalizedFileName)) return false;
+    final expiry = _urlCacheExpiry[normalizedFileName];
     if (expiry == null || DateTime.now().isAfter(expiry)) {
-      _urlCache.remove(fileName);
-      _urlCacheExpiry.remove(fileName);
+      _urlCache.remove(normalizedFileName);
+      _urlCacheExpiry.remove(normalizedFileName);
       return false;
     }
-    
     return true;
   }
 
   /// Limpia del caché URLs de perros que ya no existen
   void _cleanupOrphanedCache(List<PerroModel> currentPerros) {
-    // Obtener lista de nombres de archivos actuales
+    // Obtener lista de nombres de archivos actuales (normalizados)
     final currentFileNames = currentPerros
         .where((p) => p.fotoPerro != null && !p.fotoPerro!.startsWith('http'))
-        .map((p) => p.fotoPerro!)
+        .map((p) => _normalizeFileName(p.fotoPerro!))
         .toSet();
-    
     // Eliminar del caché archivos que ya no están en la lista actual
     final keysToRemove = <String>[];
     for (final cachedFileName in _urlCache.keys) {
@@ -218,7 +207,6 @@ class PerroViewModel extends ChangeNotifier {
         keysToRemove.add(cachedFileName);
       }
     }
-    
     for (final key in keysToRemove) {
       _urlCache.remove(key);
       _urlCacheExpiry.remove(key);
@@ -636,17 +624,14 @@ class PerroViewModel extends ChangeNotifier {
     if (filename == null || filename.isEmpty || filename.startsWith('http')) {
       return;
     }
-
     try {
+      final normalizedFileName = _normalizeFileName(filename);
       // Limpiar nuestro caché interno
-      _urlCache.remove(filename);
-      _urlCacheExpiry.remove(filename);
-      
+      _urlCache.remove(normalizedFileName);
+      _urlCacheExpiry.remove(normalizedFileName);
       // Obtener la URL firmada para limpiar el caché de CachedNetworkImage
       try {
-        final imageUrl = await _perroRepository.getSignedImageUrl(filename);
-        
-        // Limpiar el caché de CachedNetworkImage
+        final imageUrl = await _perroRepository.getSignedImageUrl(normalizedFileName);
         final cachedImageManager = DefaultCacheManager();
         await cachedImageManager.removeFile(imageUrl);
       } catch (e) {
@@ -751,12 +736,8 @@ class PerroViewModel extends ChangeNotifier {
   /// Pre-carga la imagen de un perro específico para edición rápida
   Future<void> preloadPerroImageForEditing(String? fileName) async {
     if (fileName == null || fileName.isEmpty || fileName.startsWith('http')) return;
-    
-    // Si ya está en caché y es válida, no hacer nada
     if (_isUrlCached(fileName)) return;
-    
     try {
-      // Pre-cargar la URL firmada
       await _preloadSingleImageUrl(fileName);
     } catch (e) {
       // Ignorar errores de pre-carga
