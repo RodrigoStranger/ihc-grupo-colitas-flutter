@@ -3,6 +3,8 @@
 Una aplicación Flutter para la gestión administrativa del refugio de animales "Grupo Colitas Arequipa". Esta aplicación permite a los administradores gestionar animales, donaciones, campañas y adopciones de manera eficiente.
 
 ## 📱 Características Principales
+![Login](assets/entrada.png)
+![Menú principal de la app](assets/principal.png)
 
 ### 🐕 Gestión de Animales
 - **Registro de perros**: Agregar nuevos perros al refugio con información completa
@@ -11,16 +13,22 @@ Una aplicación Flutter para la gestión administrativa del refugio de animales 
 - **Galería de imágenes**: Visualización optimizada de fotos de los animales
 - **Filtros**: Filtrar animales por estado (Disponible, Adoptado, En Tratamiento)
 
+![Lista de perros registrados](assets/adopción.png)
+
 ### 💰 Gestión de Donaciones
 - **Visualización de donaciones**: Lista paginada de todas las donaciones
 - **Detalles de donación**: Información completa
 - **Gestión de comprobantes**: Visualización de documentos de respaldo
 - **Estados de donación**: Seguimiento del estado de cada donación
 
+![Vista de donaciones registradas](assets/donaciones.png)
+
 ### 📋 Gestión de Campañas
 - **Campañas activas**: Visualización de campañas del refugio
 - **Gestión de firmas**: Administración de firmas de apoyo
 - **Detalles de participación**: Información detallada de cada firma
+
+![Lista de campañas activas](assets/campañas.png)
 
 ### 🔐 Panel de Administración
 - **Autenticación segura**: Login con Supabase Authentication
@@ -112,7 +120,7 @@ lib/
 
 1. **Clonar el repositorio**
    ```bash
-   git clone <url-del-repositorio>
+   git clone [<url-del-repositorio>](https://github.com/RodrigoStranger/ihc-grupo-colitas-flutter.git)
    cd ihc-grupo-colitas-flutter
    ```
 
@@ -148,22 +156,6 @@ lib/
 - `DescripcionPerro` - Descripción detallada
 - `FotoPerro` - URL de la imagen
 - `IngresoPerro` - Fecha de ingreso
-
-#### Tabla: Donaciones
-- `id` (Primary Key)
-- `donante_nombre` - Nombre del donante
-- `tipo` - Tipo de donación
-- `monto` - Cantidad donada
-- `descripcion` - Descripción de la donación
-- `fecha_donacion` - Fecha de la donación
-- `comprobante_url` - URL del comprobante
-- `metodo_pago` - Método de pago utilizado
-- `estado` - Estado de la donación
-
-#### Tabla: Firmas (Campañas)
-- Campos para gestión de firmas de campañas
-- Información de contacto de firmantes
-- Motivos y fechas de participación
 
 ## 🎨 Características Técnicas
 
@@ -219,10 +211,9 @@ Este proyecto está bajo la Licencia MIT
 ## 📞 Contacto
 
 **Grupo Colitas Arequipa**
-- Email: 
-- Sitio web: 
-- Facebook:
+- Sitio web: https://grupo-colitas-aqp.vercel.app/home
+- Facebook: https://www.facebook.com/people/Asociaci%C3%B3n-Colitas-Oficial-Arequipa/100088175020547/?rdid=vqISWL2JHRi89qNO&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1AKkzZcoLX%2F
 
 ---
 
-Desarrollado con ❤️ para el bienestar anima
+Desarrollado con ❤️ para el bienestar animal
