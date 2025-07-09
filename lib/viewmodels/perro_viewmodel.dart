@@ -80,28 +80,38 @@ class PerroViewModel extends ChangeNotifier {
     });
   }
 
+  /// Normaliza el nombre de archivo para evitar problemas de compatibilidad
+  String _normalizeFileName(String fileName) {
+    // Quitar rutas, espacios, tildes y convertir a minúsculas
+    String name = fileName.trim();
+    if (name.contains('/')) {
+      name = name.split('/').last;
+    }
+    name = name.replaceAll(' ', '_');
+    // Opcional: puedes agregar más normalizaciones si tus archivos tienen tildes o caracteres especiales
+    return name;
+  }
+
   /// Obtiene URL firmada desde caché o la genera nueva si es necesaria
   Future<String?> _getCachedImageUrl(String fileName) async {
+    final normalizedFileName = _normalizeFileName(fileName);
     // Verificar si tenemos una URL válida en caché
-    if (_urlCache.containsKey(fileName)) {
-      final expiry = _urlCacheExpiry[fileName];
+    if (_urlCache.containsKey(normalizedFileName)) {
+      final expiry = _urlCacheExpiry[normalizedFileName];
       if (expiry != null && DateTime.now().isBefore(expiry)) {
-        return _urlCache[fileName];
+        return _urlCache[normalizedFileName];
       } else {
         // URL expirada, limpiar del caché
-        _urlCache.remove(fileName);
-        _urlCacheExpiry.remove(fileName);
+        _urlCache.remove(normalizedFileName);
+        _urlCacheExpiry.remove(normalizedFileName);
       }
     }
 
     try {
       // Generar nueva URL firmada
-      final newUrl = await _perroRepository.getSignedImageUrl(fileName);
-      
-      // Guardar en caché por 55 minutos (más tiempo para evitar regeneración frecuente)
-      _urlCache[fileName] = newUrl;
-      _urlCacheExpiry[fileName] = DateTime.now().add(const Duration(minutes: 55));
-      
+      final newUrl = await _perroRepository.getSignedImageUrl(normalizedFileName);
+      _urlCache[normalizedFileName] = newUrl;
+      _urlCacheExpiry[normalizedFileName] = DateTime.now().add(const Duration(minutes: 55));
       return newUrl;
     } catch (e) {
       return null;
